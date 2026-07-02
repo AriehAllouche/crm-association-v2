@@ -8,6 +8,10 @@ import {
   AlertTriangle,
   Euro,
   Activity,
+  Home,
+  Building2,
+  Users,
+  Scale,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { PageHeader, StatCard, LoadingSpinner, Badge } from '../components/ui';
@@ -19,6 +23,7 @@ import {
   daysUntil,
   formatCurrency,
 } from '../lib/constants';
+import { generateAllAlerts } from '../lib/alerts';
 import type { Animal, Alert } from '../types';
 
 export function DashboardPage() {
@@ -27,9 +32,13 @@ export function DashboardPage() {
     totalAnimaux: 0,
     aAdopter: 0,
     enFamilleAccueil: 0,
+    enPension: 0,
     enSoins: 0,
     signalementsOuverts: 0,
     adoptionsEnCours: 0,
+    famillesActives: 0,
+    pensionsActives: 0,
+    dossiersJustice: 0,
     coutTotal: 0,
   });
   const [recentAnimaux, setRecentAnimaux] = useState<Animal[]>([]);
@@ -42,12 +51,18 @@ export function DashboardPage() {
   const fetchDashboardData = async () => {
     setLoading(true);
 
-    const [animauxRes, signalementsRes, adoptionsRes, depensesRes, alertsRes] = await Promise.all([
+    // Générer automatiquement les alertes
+    await generateAllAlerts();
+
+    const [animauxRes, signalementsRes, adoptionsRes, depensesRes, alertsRes, famillesRes, pensionsRes, justiceRes] = await Promise.all([
       supabase.from('animals').select('*').order('created_at', { ascending: false }).limit(5),
       supabase.from('signalements').select('*', { count: 'exact' }).in('statut', ['nouveau', 'en_cours']),
       supabase.from('adoptions').select('*', { count: 'exact' }).not('statut', 'in', '("adoptee","refusee")'),
       supabase.from('depenses').select('montant'),
       supabase.from('alerts').select('*, animal:animals(*)').eq('statut', 'active').order('date_echeance').limit(10),
+      supabase.from('famille_accueils').select('*', { count: 'exact' }).eq('contrat_actif', true),
+      supabase.from('pensions').select('*', { count: 'exact' }),
+      supabase.from('justice_cases').select('*', { count: 'exact' }).in('statut', ['nouveau', 'en_cours', 'en_attente']),
     ]);
 
     const animaux = (animauxRes.data ?? []) as Animal[];
@@ -57,9 +72,13 @@ export function DashboardPage() {
       totalAnimaux: animaux.length,
       aAdopter: animaux.filter((a) => a.statut === 'a_adopter').length,
       enFamilleAccueil: animaux.filter((a) => a.statut === 'en_famille_accueil').length,
+      enPension: animaux.filter((a) => a.statut === 'en_pension').length,
       enSoins: animaux.filter((a) => a.statut === 'en_soins').length,
       signalementsOuverts: signalementsRes.count ?? 0,
       adoptionsEnCours: adoptionsRes.count ?? 0,
+      famillesActives: famillesRes.count ?? 0,
+      pensionsActives: pensionsRes.count ?? 0,
+      dossiersJustice: justiceRes.count ?? 0,
       coutTotal: (depensesRes.data ?? []).reduce((sum, d) => sum + (d.montant ?? 0), 0),
     });
 
@@ -78,15 +97,17 @@ export function DashboardPage() {
       />
 
       {/* Stats grid */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         <StatCard label="Animaux suivis" value={stats.totalAnimaux} icon={Dog} color="primary" />
         <StatCard label="À adopter" value={stats.aAdopter} icon={HeartHandshake} color="success" />
-        <StatCard label="En famille d'accueil" value={stats.enFamilleAccueil} icon={Activity} color="secondary" />
+        <StatCard label="En FA" value={stats.enFamilleAccueil} icon={Home} color="secondary" />
+        <StatCard label="En pension" value={stats.enPension} icon={Building2} color="accent" />
         <StatCard label="En soins" value={stats.enSoins} icon={Stethoscope} color="error" />
-        <StatCard label="Signalements ouverts" value={stats.signalementsOuverts} icon={Siren} color="warning" />
-        <StatCard label="Adoptions en cours" value={stats.adoptionsEnCours} icon={HeartHandshake} color="accent" />
-        <StatCard label="Coûts totaux" value={formatCurrency(stats.coutTotal)} icon={Euro} color="error" />
-        <StatCard label="Alertes actives" value={alerts.length} icon={AlertTriangle} color="warning" />
+        <StatCard label="Signalements" value={stats.signalementsOuverts} icon={Siren} color="warning" />
+        <StatCard label="Adoptions" value={stats.adoptionsEnCours} icon={HeartHandshake} color="success" />
+        <StatCard label="Familles actives" value={stats.famillesActives} icon={Home} color="primary" />
+        <StatCard label="Justice" value={stats.dossiersJustice} icon={Scale} color="secondary" />
+        <StatCard label="Alertes" value={alerts.length} icon={AlertTriangle} color="warning" />
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
