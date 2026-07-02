@@ -17,6 +17,7 @@ import { DocumentsPage } from './pages/DocumentsPage';
 import { EnqueteursPage } from './pages/EnqueteursPage';
 import { RegistrePage } from './pages/RegistrePage';
 import { ImportPage } from './pages/ImportPage';
+import { SearchPage } from './pages/SearchPage';
 import { LoadingSpinner } from './components/ui';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -55,6 +56,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <DashboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/recherche"
+        element={
+          <ProtectedRoute>
+            <SearchPage />
           </ProtectedRoute>
         }
       />

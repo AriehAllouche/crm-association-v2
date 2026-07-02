@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { PageHeader, LoadingSpinner } from '../components/ui';
+import { ImageUpload } from '../components/ImageUpload';
 import { animalStatutLabels, especeLabels } from '../lib/constants';
 import type { Animal, AnimalStatut, AnimalEspece, AnimalSexe, SanteStatut } from '../types';
 
@@ -78,6 +79,14 @@ export function AnimalFormPage() {
     setLoading(false);
   };
 
+  const handleImageUploaded = (url: string) => {
+    setForm({ ...form, photo_url: url });
+  };
+
+  const handleImageRemoved = () => {
+    setForm({ ...form, photo_url: '' });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -144,6 +153,16 @@ export function AnimalFormPage() {
         <div className="card p-6">
           <h2 className="mb-4 font-heading text-lg font-semibold text-neutral-900">Identité</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="sm:col-span-2 lg:col-span-3">
+              <label className="label">Photo</label>
+              <ImageUpload
+                currentImageUrl={form.photo_url}
+                onImageUploaded={handleImageUploaded}
+                onImageRemoved={handleImageRemoved}
+                bucket="animals"
+                pathPrefix={id || undefined}
+              />
+            </div>
             <div>
               <label className="label">Nom *</label>
               <input
