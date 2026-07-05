@@ -57,3 +57,5 @@ async function checkTables() {
   console.log('Si des tables sont manquantes, vous devez les créer dans Supabase.');
   console.log('Vous pouvez utiliser le dossier "supabase" du projet pour les migrations SQL.');
 }
+
+checkTables();
