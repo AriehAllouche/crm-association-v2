@@ -315,6 +315,7 @@ export interface DocumentItem {
   nom_fichier: string;
   url: string;
   description?: string;
+  folder?: string;
   taille?: number;
   created_by?: string;
   created_at: string;
