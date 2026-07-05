@@ -319,36 +319,68 @@ ALTER TABLE registre_entree_sortie ENABLE ROW LEVEL SECURITY;
 ALTER TABLE alerts ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies (permettre l'accès authentifié)
-CREATE OR REPLACE POLICY "Authenticated users can read profiles" ON profiles FOR SELECT USING (auth.role() = 'authenticated');
-CREATE OR REPLACE POLICY "Authenticated users can insert profiles" ON profiles FOR INSERT WITH CHECK (auth.role() = 'authenticated');
-CREATE OR REPLACE POLICY "Authenticated users can update profiles" ON profiles FOR UPDATE USING (auth.role() = 'authenticated');
+-- Supprimer les politiques existantes si elles existent
+DROP POLICY IF EXISTS "Authenticated users can read profiles" ON profiles;
+DROP POLICY IF EXISTS "Authenticated users can insert profiles" ON profiles;
+DROP POLICY IF EXISTS "Authenticated users can update profiles" ON profiles;
 
-CREATE OR REPLACE POLICY "Authenticated users can read animals" ON animals FOR SELECT USING (auth.role() = 'authenticated');
-CREATE OR REPLACE POLICY "Authenticated users can insert animals" ON animals FOR INSERT WITH CHECK (auth.role() = 'authenticated');
-CREATE OR REPLACE POLICY "Authenticated users can update animals" ON animals FOR UPDATE USING (auth.role() = 'authenticated');
-CREATE OR REPLACE POLICY "Authenticated users can delete animals" ON animals FOR DELETE USING (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Authenticated users can read animals" ON animals;
+DROP POLICY IF EXISTS "Authenticated users can insert animals" ON animals;
+DROP POLICY IF EXISTS "Authenticated users can update animals" ON animals;
+DROP POLICY IF EXISTS "Authenticated users can delete animals" ON animals;
 
-CREATE OR REPLACE POLICY "Authenticated users can read contacts" ON contacts FOR SELECT USING (auth.role() = 'authenticated');
-CREATE OR REPLACE POLICY "Authenticated users can insert contacts" ON contacts FOR INSERT WITH CHECK (auth.role() = 'authenticated');
-CREATE OR REPLACE POLICY "Authenticated users can update contacts" ON contacts FOR UPDATE USING (auth.role() = 'authenticated');
-CREATE OR REPLACE POLICY "Authenticated users can delete contacts" ON contacts FOR DELETE USING (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Authenticated users can read contacts" ON contacts;
+DROP POLICY IF EXISTS "Authenticated users can insert contacts" ON contacts;
+DROP POLICY IF EXISTS "Authenticated users can update contacts" ON contacts;
+DROP POLICY IF EXISTS "Authenticated users can delete contacts" ON contacts;
+
+DROP POLICY IF EXISTS "Authenticated full access on famille_accueils" ON famille_accueils;
+DROP POLICY IF EXISTS "Authenticated full access on famille_accueil_animaux" ON famille_accueil_animaux;
+DROP POLICY IF EXISTS "Authenticated full access on veterinaires" ON veterinaires;
+DROP POLICY IF EXISTS "Authenticated full access on veterinaire_visites" ON veterinaire_visites;
+DROP POLICY IF EXISTS "Authenticated full access on pensions" ON pensions;
+DROP POLICY IF EXISTS "Authenticated full access on pension_sejours" ON pension_sejours;
+DROP POLICY IF EXISTS "Authenticated full access on signalements" ON signalements;
+DROP POLICY IF EXISTS "Authenticated full access on adoptions" ON adoptions;
+DROP POLICY IF EXISTS "Authenticated full access on justice_cases" ON justice_cases;
+DROP POLICY IF EXISTS "Authenticated full access on transports" ON transports;
+DROP POLICY IF EXISTS "Authenticated full access on documents" ON documents;
+DROP POLICY IF EXISTS "Authenticated full access on depenses" ON depenses;
+DROP POLICY IF EXISTS "Authenticated full access on enqueteurs" ON enqueteurs;
+DROP POLICY IF EXISTS "Authenticated full access on registre_entree_sortie" ON registre_entree_sortie;
+DROP POLICY IF EXISTS "Authenticated full access on alerts" ON alerts;
+
+-- Créer les politiques RLS
+CREATE POLICY "Authenticated users can read profiles" ON profiles FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can insert profiles" ON profiles FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can update profiles" ON profiles FOR UPDATE USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Authenticated users can read animals" ON animals FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can insert animals" ON animals FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can update animals" ON animals FOR UPDATE USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can delete animals" ON animals FOR DELETE USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Authenticated users can read contacts" ON contacts FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can insert contacts" ON contacts FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can update contacts" ON contacts FOR UPDATE USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can delete contacts" ON contacts FOR DELETE USING (auth.role() = 'authenticated');
 
 -- Similaire pour les autres tables (accès complet pour les utilisateurs authentifiés)
-CREATE OR REPLACE POLICY "Authenticated full access on famille_accueils" ON famille_accueils FOR ALL USING (auth.role() = 'authenticated');
-CREATE OR REPLACE POLICY "Authenticated full access on famille_accueil_animaux" ON famille_accueil_animaux FOR ALL USING (auth.role() = 'authenticated');
-CREATE OR REPLACE POLICY "Authenticated full access on veterinaires" ON veterinaires FOR ALL USING (auth.role() = 'authenticated');
-CREATE OR REPLACE POLICY "Authenticated full access on veterinaire_visites" ON veterinaire_visites FOR ALL USING (auth.role() = 'authenticated');
-CREATE OR REPLACE POLICY "Authenticated full access on pensions" ON pensions FOR ALL USING (auth.role() = 'authenticated');
-CREATE OR REPLACE POLICY "Authenticated full access on pension_sejours" ON pension_sejours FOR ALL USING (auth.role() = 'authenticated');
-CREATE OR REPLACE POLICY "Authenticated full access on signalements" ON signalements FOR ALL USING (auth.role() = 'authenticated');
-CREATE OR REPLACE POLICY "Authenticated full access on adoptions" ON adoptions FOR ALL USING (auth.role() = 'authenticated');
-CREATE OR REPLACE POLICY "Authenticated full access on justice_cases" ON justice_cases FOR ALL USING (auth.role() = 'authenticated');
-CREATE OR REPLACE POLICY "Authenticated full access on transports" ON transports FOR ALL USING (auth.role() = 'authenticated');
-CREATE OR REPLACE POLICY "Authenticated full access on documents" ON documents FOR ALL USING (auth.role() = 'authenticated');
-CREATE OR REPLACE POLICY "Authenticated full access on depenses" ON depenses FOR ALL USING (auth.role() = 'authenticated');
-CREATE OR REPLACE POLICY "Authenticated full access on enqueteurs" ON enqueteurs FOR ALL USING (auth.role() = 'authenticated');
-CREATE OR REPLACE POLICY "Authenticated full access on registre_entree_sortie" ON registre_entree_sortie FOR ALL USING (auth.role() = 'authenticated');
-CREATE OR REPLACE POLICY "Authenticated full access on alerts" ON alerts FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated full access on famille_accueils" ON famille_accueils FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated full access on famille_accueil_animaux" ON famille_accueil_animaux FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated full access on veterinaires" ON veterinaires FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated full access on veterinaire_visites" ON veterinaire_visites FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated full access on pensions" ON pensions FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated full access on pension_sejours" ON pension_sejours FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated full access on signalements" ON signalements FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated full access on adoptions" ON adoptions FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated full access on justice_cases" ON justice_cases FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated full access on transports" ON transports FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated full access on documents" ON documents FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated full access on depenses" ON depenses FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated full access on enqueteurs" ON enqueteurs FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated full access on registre_entree_sortie" ON registre_entree_sortie FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated full access on alerts" ON alerts FOR ALL USING (auth.role() = 'authenticated');
 
 -- Index pour optimiser les recherches
 CREATE INDEX IF NOT EXISTS idx_animals_statut ON animals(statut);
