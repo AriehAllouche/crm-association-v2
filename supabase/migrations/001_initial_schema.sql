@@ -230,11 +230,15 @@ CREATE TABLE IF NOT EXISTS transports (
 CREATE TABLE IF NOT EXISTS documents (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   animal_id UUID REFERENCES animals(id) ON DELETE CASCADE,
-  type TEXT CHECK (type IN ('medical', 'administratif', 'judiciaire', 'contrat', 'autre')),
-  titre TEXT NOT NULL,
+  module TEXT CHECK (module IN ('animal', 'signalement', 'famille_accueil', 'adoption', 'veterinaire', 'justice', 'pension', 'transport', 'communication', 'autre')),
+  module_id UUID,
+  type_document TEXT CHECK (type_document IN ('contrat', 'facture', 'devis', 'certificat', 'jugement', 'photo', 'video', 'compte_rendu', 'carte', 'autre')),
+  nom_fichier TEXT NOT NULL,
+  url TEXT NOT NULL,
   description TEXT,
-  fichier_url TEXT,
-  date_document DATE,
+  folder TEXT DEFAULT 'Général',
+  taille INTEGER,
+  created_by UUID REFERENCES auth.users(id),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
