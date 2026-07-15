@@ -10,14 +10,9 @@ import { SignalementsPage } from './pages/SignalementsPage';
 import { FamillesAccueilPage } from './pages/FamillesAccueilPage';
 import { AdoptionsPage } from './pages/AdoptionsPage';
 import { VeterinairesPage } from './pages/VeterinairesPage';
-import { JusticePage } from './pages/JusticePage';
-import { PensionsPage } from './pages/PensionsPage';
-import { TransportsPage } from './pages/TransportsPage';
-import { DocumentsPage } from './pages/DocumentsPage';
-import { EnqueteursPage } from './pages/EnqueteursPage';
-import { RegistrePage } from './pages/RegistrePage';
-import { ImportPage } from './pages/ImportPage';
+import { ComingSoonPage } from './pages/ComingSoonPage';
 import { SearchPage } from './pages/SearchPage';
+import { GoogleDriveTest } from './components/GoogleDriveTest';
 import { LoadingSpinner } from './components/ui';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -132,10 +127,18 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/test-google-drive"
+        element={
+          <ProtectedRoute>
+            <GoogleDriveTest />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/justice"
         element={
           <ProtectedRoute>
-            <JusticePage />
+            <ComingSoonPage featureName="Justice" />
           </ProtectedRoute>
         }
       />
@@ -143,7 +146,7 @@ function AppRoutes() {
         path="/pensions"
         element={
           <ProtectedRoute>
-            <PensionsPage />
+            <ComingSoonPage featureName="Pensions / Fourrières" />
           </ProtectedRoute>
         }
       />
@@ -151,7 +154,7 @@ function AppRoutes() {
         path="/transports"
         element={
           <ProtectedRoute>
-            <TransportsPage />
+            <ComingSoonPage featureName="Transports" />
           </ProtectedRoute>
         }
       />
@@ -159,7 +162,7 @@ function AppRoutes() {
         path="/documents"
         element={
           <ProtectedRoute>
-            <DocumentsPage />
+            <ComingSoonPage featureName="Documents" />
           </ProtectedRoute>
         }
       />
@@ -167,7 +170,7 @@ function AppRoutes() {
         path="/enqueteurs"
         element={
           <ProtectedRoute>
-            <EnqueteursPage />
+            <ComingSoonPage featureName="Enquêteurs" />
           </ProtectedRoute>
         }
       />
@@ -175,7 +178,7 @@ function AppRoutes() {
         path="/registre"
         element={
           <ProtectedRoute>
-            <RegistrePage />
+            <ComingSoonPage featureName="Registre légal" />
           </ProtectedRoute>
         }
       />
@@ -183,7 +186,7 @@ function AppRoutes() {
         path="/import"
         element={
           <ProtectedRoute>
-            <ImportPage />
+            <ComingSoonPage featureName="Import Excel" />
           </ProtectedRoute>
         }
       />

@@ -34,6 +34,16 @@ export interface TimelineEvent {
   description?: string;
 }
 
+export interface StatusHistoryEvent {
+  id: string;
+  animal_id: string;
+  ancien_statut: string;
+  nouveau_statut: string;
+  date_changement: string;
+  auteur?: string;
+  raison?: string;
+}
+
 export interface AnimalDetails {
   animal: Animal;
   signalement: Signalement | null;
@@ -50,6 +60,7 @@ export interface AnimalDetails {
   alerts: Alert[];
   cout_total: number;
   timeline: TimelineEvent[];
+  status_history: StatusHistoryEvent[];
 }
 
 export async function fetchAnimalDetails(animalId: string): Promise<AnimalDetails> {
@@ -80,7 +91,7 @@ async function fetchAnimalDetailsFallback(animalId: string): Promise<AnimalDetai
   const [
     animalRes, signalementRes, adoptionsRes, visitesRes,
     justiceRes, sejoursRes, transportsRes, documentsRes,
-    depensesRes, commsRes, registreRes, faRes, alertsRes
+    depensesRes, commsRes, registreRes, faRes, alertsRes, statusHistoryRes
   ] = await Promise.all([
     supabase.from('animals').select('*').eq('id', animalId).maybeSingle(),
     supabase.from('signalements').select('*').eq('animal_id', animalId).maybeSingle(),
@@ -95,6 +106,7 @@ async function fetchAnimalDetailsFallback(animalId: string): Promise<AnimalDetai
     supabase.from('registre_entrees_sorties').select('*').eq('animal_id', animalId).order('date', { ascending: false }),
     supabase.from('famille_accueil_animaux').select('*, famille_accueil:famille_accueils(*)').eq('animal_id', animalId).order('date_debut', { ascending: false }),
     supabase.from('alerts').select('*').eq('animal_id', animalId).eq('statut', 'active').order('date_echeance'),
+    supabase.from('animal_status_history').select('*').eq('animal_id', animalId).order('date_changement', { ascending: false }),
   ]);
 
   if (animalRes.error || !animalRes.data) {
@@ -158,6 +170,7 @@ async function fetchAnimalDetailsFallback(animalId: string): Promise<AnimalDetai
     alerts: (alertsRes.data ?? []) as Alert[],
     cout_total,
     timeline,
+    status_history: (statusHistoryRes.data ?? []) as StatusHistoryEvent[],
   };
 }
 

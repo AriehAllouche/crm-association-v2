@@ -3,11 +3,13 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Pencil, Dog, Siren, HeartHandshake, Stethoscope, Scale,
   Building2, Truck, FileText, Euro, Activity, MapPin, Syringe, Calendar,
-  Home, AlertTriangle, ChevronRight, Trash2,
+  Home, AlertTriangle, ChevronRight, Trash2, History,
 } from 'lucide-react';
-import { fetchAnimalDetails, type AnimalDetails } from '../lib/animalDetails';
+import { fetchAnimalDetails, type AnimalDetails, type StatusHistoryEvent } from '../lib/animalDetails';
 import { supabase } from '../lib/supabase';
 import { LoadingSpinner, Badge, EmptyState } from '../components/ui';
+import { HistoryTimeline } from '../components/HistoryTimeline';
+import { getFamillesAccueilStatuts, type FamilleAccueilStatutInfo } from '../lib/familleAccueil';
 import {
   InlineVetVisitForm, InlineFamilleAccueilForm, InlineTransportForm,
   InlineDepenseForm, InlinePensionForm,
@@ -47,6 +49,7 @@ export function AnimalDetailPage() {
   const [activeTab, setActiveTab] = useState('timeline');
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [faStatuts, setFaStatuts] = useState<Record<string, FamilleAccueilStatutInfo>>({});
 
   const handleDelete = async () => {
     if (!id) return;
@@ -71,6 +74,16 @@ export function AnimalDetailPage() {
     try {
       const details = await fetchAnimalDetails(id);
       setData(details);
+
+      // Récupérer les statuts des familles d'accueil
+      const faIds = details.familles_accueil
+        .map((fa) => fa.famille_accueil_id)
+        .filter((id): id is string => id !== undefined);
+      
+      if (faIds.length > 0) {
+        const statuts = await getFamillesAccueilStatuts(faIds);
+        setFaStatuts(statuts);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de chargement');
     } finally {
@@ -96,17 +109,11 @@ export function AnimalDetailPage() {
   }
 
   const { animal, signalement, adoptions, visites, justice, sejours, transports,
-    documents, depenses, communications, registre, familles_accueil, alerts, cout_total, timeline } = data;
+    documents, depenses, communications, registre, familles_accueil, alerts, cout_total, timeline, status_history } = data;
 
   const faActive = familles_accueil.filter((f) => f.statut === 'en_cours');
   const faPrevus = familles_accueil.filter((f) => f.statut === 'prevu');
   const faHistorique = familles_accueil.filter((f) => f.statut === 'termine');
-
-  const faStatutLabels: Record<FamilleAccueilAnimalStatut, string> = {
-    prevu: 'Prévu',
-    en_cours: 'En cours',
-    termine: 'Terminé',
-  };
 
   const faStatutColors: Record<FamilleAccueilAnimalStatut, string> = {
     prevu: 'bg-warning-100 text-warning-800',
@@ -116,6 +123,7 @@ export function AnimalDetailPage() {
 
   const tabs = [
     { id: 'timeline', label: 'Timeline', icon: Activity, count: timeline.length },
+    { id: 'historique', label: 'Historique', icon: History, count: status_history.length + visites.length + documents.length },
     { id: 'signalement', label: 'Signalement', icon: Siren, count: signalement ? 1 : 0 },
     { id: 'famille', label: 'Famille d\'accueil', icon: Home, count: familles_accueil.length },
     { id: 'veterinaire', label: 'Vétérinaire', icon: Stethoscope, count: visites.length },
@@ -127,7 +135,7 @@ export function AnimalDetailPage() {
     { id: 'depenses', label: 'Coûts', icon: Euro, count: depenses.length },
     { id: 'communication', label: 'Communication', icon: Activity, count: communications.length },
     { id: 'registre', label: 'Registre', icon: Calendar, count: registre.length },
-  ].filter((t) => t.count > 0 || ['timeline', 'famille', 'veterinaire', 'documents', 'depenses', 'registre'].includes(t.id));
+  ].filter((t) => t.count > 0 || ['timeline', 'historique', 'famille', 'veterinaire', 'documents', 'depenses', 'registre'].includes(t.id));
 
   return (
     <div>
@@ -165,12 +173,22 @@ export function AnimalDetailPage() {
               {animal.sexe && <span>{animal.sexe === 'male' ? 'Mâle' : animal.sexe === 'femelle' ? 'Femelle' : ''}</span>}
               {animal.date_naissance && <span>Né le {formatDate(animal.date_naissance)}</span>}
               {animal.numero_icad && <span>ICAD: {animal.numero_icad}</span>}
+              {animal.agent && <span>Agent: {animal.agent}</span>}
+              {animal.date_pec && <span>PEC: {formatDate(animal.date_pec)}</span>}
               {animal.lieu_actuel && <span className="flex items-center gap-1"><MapPin size={14} /> {animal.lieu_actuel}</span>}
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
               <Badge className={santeStatutColors[animal.sante_statut]}>Santé: {santeStatutLabels[animal.sante_statut]}</Badge>
               {animal.sterilise && <Badge className="bg-success-100 text-success-700">Stérilisé</Badge>}
               {animal.vaccinne && <Badge className="bg-secondary-100 text-secondary-700"><Syringe size={12} className="mr-1" />Vacciné</Badge>}
+              {animal.icad_done && <Badge className="bg-info-100 text-info-700">ICAD fait</Badge>}
+              {animal.requisition && <Badge className="bg-error-100 text-error-700">Réquisition</Badge>}
+              {animal.en_pension && <Badge className="bg-warning-100 text-warning-700">En pension</Badge>}
+              {animal.adopte && <Badge className="bg-success-100 text-success-700">Adopté</Badge>}
+              {animal.vole && <Badge className="bg-error-100 text-error-700">Volé</Badge>}
+              {animal.perdu && <Badge className="bg-warning-100 text-warning-800">Perdu</Badge>}
+              {animal.reserve && <Badge className="bg-info-100 text-info-700">Réservé</Badge>}
+              {animal.remis_proprietaire && <Badge className="bg-success-100 text-success-700">Remis propriétaire</Badge>}
               <Badge className="bg-error-50 text-error-700"><Euro size={12} className="mr-1" />{formatCurrency(cout_total)}</Badge>
               {alerts.length > 0 && <Badge className="bg-warning-100 text-warning-800"><AlertTriangle size={12} className="mr-1" />{alerts.length} alerte{alerts.length > 1 ? 's' : ''}</Badge>}
             </div>
@@ -215,6 +233,25 @@ export function AnimalDetailPage() {
 
       {/* Tab content */}
       <div className="animate-fade-in">
+        {/* HISTORIQUE */}
+        {activeTab === 'historique' && (
+          <div className="card p-6">
+            <h2 className="mb-6 font-heading text-lg font-semibold text-neutral-900">Historique complet</h2>
+            <HistoryTimeline
+              events={status_history.map((h: StatusHistoryEvent) => ({
+                id: h.id,
+                date: h.date_changement,
+                type: 'statut',
+                title: `Changement de statut: ${animalStatutLabels[h.ancien_statut as keyof typeof animalStatutLabels] || h.ancien_statut} → ${animalStatutLabels[h.nouveau_statut as keyof typeof animalStatutLabels] || h.nouveau_statut}`,
+                description: h.raison,
+                author: h.auteur,
+              }))}
+              visites={visites}
+              documents={documents}
+            />
+          </div>
+        )}
+
         {/* TIMELINE */}
         {activeTab === 'timeline' && (
           <div className="card p-6">
@@ -280,21 +317,29 @@ export function AnimalDetailPage() {
             {faActive.length > 0 && (
               <div>
                 <p className="mb-2 text-sm font-medium text-neutral-500">Animaux actuellement accueillis</p>
-                {faActive.map((fa) => (
-                  <div key={fa.id} className="card mb-2 flex items-center justify-between p-4">
-                    <Link to="/familles-accueil" className="flex flex-1 items-center gap-3 transition-colors hover:bg-neutral-50">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-success-50 text-success-600"><Home size={20} /></div>
-                      <div>
-                        <p className="font-medium text-neutral-900">{fa.famille_accueil?.nom} {fa.famille_accueil?.prenom ?? ''}</p>
-                        <p className="text-sm text-neutral-500">Depuis le {fa.date_debut ? formatDate(fa.date_debut) : '—'}{fa.famille_accueil?.ville ? ` · ${fa.famille_accueil.ville}` : ''}</p>
+                {faActive.map((fa) => {
+                  const faStatut = fa.famille_accueil_id ? faStatuts[fa.famille_accueil_id] : null;
+                  return (
+                    <div key={fa.id} className="card mb-2 flex items-center justify-between p-4">
+                      <Link to="/familles-accueil" className="flex flex-1 items-center gap-3 transition-colors hover:bg-neutral-50">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-success-50 text-success-600"><Home size={20} /></div>
+                        <div>
+                          <p className="font-medium text-neutral-900">{fa.famille_accueil?.nom} {fa.famille_accueil?.prenom ?? ''}</p>
+                          <p className="text-sm text-neutral-500">Depuis le {fa.date_debut ? formatDate(fa.date_debut) : '—'}{fa.famille_accueil?.ville ? ` · ${fa.famille_accueil.ville}` : ''}</p>
+                        </div>
+                      </Link>
+                      <div className="flex items-center gap-2">
+                        <Badge className={faStatutColors.en_cours}>En cours</Badge>
+                        {faStatut && (
+                          <Badge className={faStatut.colorClass}>
+                            {faStatut.label}
+                          </Badge>
+                        )}
+                        <InlineEditPlacementForm animalId={animal.id} placement={fa} onSaved={loadData} />
                       </div>
-                    </Link>
-                    <div className="flex items-center gap-2">
-                      <Badge className={faStatutColors.en_cours}>En cours</Badge>
-                      <InlineEditPlacementForm animalId={animal.id} placement={fa} onSaved={loadData} />
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
@@ -302,24 +347,32 @@ export function AnimalDetailPage() {
             {faPrevus.length > 0 && (
               <div>
                 <p className="mb-2 text-sm font-medium text-neutral-500">Arrivées prévues</p>
-                {faPrevus.map((fa) => (
-                  <div key={fa.id} className="card mb-2 flex items-center justify-between p-4">
-                    <Link to="/familles-accueil" className="flex flex-1 items-center gap-3 transition-colors hover:bg-neutral-50">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-warning-50 text-warning-600"><Home size={20} /></div>
-                      <div>
-                        <p className="font-medium text-neutral-900">{fa.famille_accueil?.nom} {fa.famille_accueil?.prenom ?? ''}</p>
-                        <p className="text-sm text-neutral-500">
-                          {fa.date_debut ? `Arrivée prévue le ${formatDate(fa.date_debut)}` : 'Date non fixée'}
-                          {fa.famille_accueil?.ville ? ` · ${fa.famille_accueil.ville}` : ''}
-                        </p>
+                {faPrevus.map((fa) => {
+                  const faStatut = fa.famille_accueil_id ? faStatuts[fa.famille_accueil_id] : null;
+                  return (
+                    <div key={fa.id} className="card mb-2 flex items-center justify-between p-4">
+                      <Link to="/familles-accueil" className="flex flex-1 items-center gap-3 transition-colors hover:bg-neutral-50">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-warning-50 text-warning-600"><Home size={20} /></div>
+                        <div>
+                          <p className="font-medium text-neutral-900">{fa.famille_accueil?.nom} {fa.famille_accueil?.prenom ?? ''}</p>
+                          <p className="text-sm text-neutral-500">
+                            {fa.date_debut ? `Arrivée prévue le ${formatDate(fa.date_debut)}` : 'Date non fixée'}
+                            {fa.famille_accueil?.ville ? ` · ${fa.famille_accueil.ville}` : ''}
+                          </p>
+                        </div>
+                      </Link>
+                      <div className="flex items-center gap-2">
+                        <Badge className={faStatutColors.prevu}>Prévu</Badge>
+                        {faStatut && (
+                          <Badge className={faStatut.colorClass}>
+                            {faStatut.label}
+                          </Badge>
+                        )}
+                        <InlineEditPlacementForm animalId={animal.id} placement={fa} onSaved={loadData} />
                       </div>
-                    </Link>
-                    <div className="flex items-center gap-2">
-                      <Badge className={faStatutColors.prevu}>Prévu</Badge>
-                      <InlineEditPlacementForm animalId={animal.id} placement={fa} onSaved={loadData} />
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
@@ -327,24 +380,32 @@ export function AnimalDetailPage() {
             {faHistorique.length > 0 && (
               <div>
                 <p className="mb-2 text-sm font-medium text-neutral-500">Historique des placements</p>
-                {faHistorique.map((fa) => (
-                  <div key={fa.id} className="card mb-2 flex items-center justify-between p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-100 text-neutral-400"><Home size={20} /></div>
-                      <div>
-                        <p className="font-medium text-neutral-900">{fa.famille_accueil?.nom} {fa.famille_accueil?.prenom ?? ''}</p>
-                        <p className="text-sm text-neutral-500">
-                          {fa.date_debut ? formatDate(fa.date_debut) : '—'} → {fa.date_fin ? formatDate(fa.date_fin) : '—'}
-                        </p>
+                {faHistorique.map((fa) => {
+                  const faStatut = fa.famille_accueil_id ? faStatuts[fa.famille_accueil_id] : null;
+                  return (
+                    <div key={fa.id} className="card mb-2 flex items-center justify-between p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-100 text-neutral-400"><Home size={20} /></div>
+                        <div>
+                          <p className="font-medium text-neutral-900">{fa.famille_accueil?.nom} {fa.famille_accueil?.prenom ?? ''}</p>
+                          <p className="text-sm text-neutral-500">
+                            {fa.date_debut ? formatDate(fa.date_debut) : '—'} → {fa.date_fin ? formatDate(fa.date_fin) : '—'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {fa.motif_fin && <span className="text-xs text-neutral-500">{fa.motif_fin}</span>}
+                        <Badge className={faStatutColors.termine}>Terminé</Badge>
+                        {faStatut && (
+                          <Badge className={faStatut.colorClass}>
+                            {faStatut.label}
+                          </Badge>
+                        )}
+                        <InlineEditPlacementForm animalId={animal.id} placement={fa} onSaved={loadData} />
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {fa.motif_fin && <span className="text-xs text-neutral-500">{fa.motif_fin}</span>}
-                      <Badge className={faStatutColors.termine}>Terminé</Badge>
-                      <InlineEditPlacementForm animalId={animal.id} placement={fa} onSaved={loadData} />
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 

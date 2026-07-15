@@ -32,18 +32,28 @@ export interface Animal {
   id: string;
   nom: string;
   espece: AnimalEspece;
+  species_race?: string;
   race?: string;
   sexe?: AnimalSexe;
+  gender?: string;
   date_naissance?: string;
+  birth_date?: string;
   age_estime?: string;
   couleur?: string;
   poids?: string;
   taille?: string;
   sterilise: boolean;
   vaccinne: boolean;
+  date_dernier_vaccin?: string;
   numero_icad?: string;
+  icad_number?: string;
   numero_puce?: string;
   statut: AnimalStatut;
+  status_pec?: string;
+  animal_state?: string;
+  withdrawal_cause?: string;
+  agent?: string;
+  date_pec?: string;
   description?: string;
   comportement?: string;
   sante_statut: SanteStatut;
@@ -56,6 +66,47 @@ export interface Animal {
   created_by?: string;
   created_at: string;
   updated_at: string;
+  // Champs ICAD/Documents
+  icad_done?: boolean;
+  requisition?: boolean;
+  sortie_fourriere?: boolean;
+  icad_epa?: boolean;
+  icad_non_epa?: boolean;
+  certificat_cession?: boolean;
+  cni_recu?: boolean;
+  duplicata_carte?: boolean;
+  date_envoi_icad?: string;
+  date_valide_epa?: string;
+  attente_icad?: boolean;
+  // Champs santé
+  en_pension?: boolean;
+  primo_vaccination?: boolean;
+  date_vaccin?: string;
+  rappel_vaccin?: boolean;
+  date_rappel?: string;
+  diagnose?: string;
+  delais_rdv?: string;
+  date_diagnose?: string;
+  sterilisation?: boolean;
+  date_sterilisation?: string;
+  // Champs adoption/sortie
+  caution?: string;
+  frais_adoption?: string;
+  adopte?: boolean;
+  adoptant_nom?: string;
+  lieu_intervention?: string;
+  famille_accueil_actuelle?: string;
+  mail_famille_accueil?: string;
+  // Statuts rapides
+  remis_proprietaire?: boolean;
+  a_l_adoption?: boolean;
+  fa_en_vue_adoption?: boolean;
+  cedere_autre_asso?: boolean;
+  transfert_asso?: boolean;
+  perdu?: boolean;
+  reserve?: boolean;
+  vole?: boolean;
+  notes_excel?: string;
 }
 
 export type SignalementStatut = 'nouveau' | 'en_cours' | 'traite' | 'cloture';
@@ -104,6 +155,8 @@ export interface FamilleAccueil {
   materiel_confie?: string;
   croquettes_fournies?: string;
   notes?: string;
+  statut?: 'active' | 'refusee' | 'en_attente';
+  rejection_reason?: string;
   created_at: string;
   updated_at: string;
 }

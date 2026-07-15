@@ -18,8 +18,10 @@ export function AnimalFormPage() {
   const [form, setForm] = useState({
     nom: '',
     espece: 'chien' as AnimalEspece,
+    species_race: '',
     race: '',
     sexe: 'inconnu' as AnimalSexe,
+    gender: '',
     date_naissance: '',
     age_estime: '',
     couleur: '',
@@ -27,9 +29,16 @@ export function AnimalFormPage() {
     taille: '',
     sterilise: false,
     vaccinne: false,
+    date_dernier_vaccin: '',
     numero_icad: '',
+    icad_number: '',
     numero_puce: '',
     statut: 'signale' as AnimalStatut,
+    status_pec: '',
+    animal_state: '',
+    withdrawal_cause: '',
+    agent: '',
+    date_pec: '',
     description: '',
     comportement: '',
     sante_statut: 'bon' as SanteStatut,
@@ -37,6 +46,48 @@ export function AnimalFormPage() {
     photo_url: '',
     lieu_actuel: '',
     date_prise_en_charge: '',
+    // ICAD/Documents
+    icad_done: false,
+    requisition: false,
+    sortie_fourriere: false,
+    icad_epa: false,
+    icad_non_epa: false,
+    certificat_cession: false,
+    cni_recu: false,
+    duplicata_carte: false,
+    date_envoi_icad: '',
+    date_valide_epa: '',
+    attente_icad: false,
+    // Santé
+    en_pension: false,
+    primo_vaccination: false,
+    date_vaccin: '',
+    rappel_vaccin: false,
+    date_rappel: '',
+    diagnose: '',
+    delais_rdv: '',
+    date_diagnose: '',
+    sterilisation: false,
+    date_sterilisation: '',
+    // Adoption/Sortie
+    caution: '',
+    frais_adoption: '',
+    adopte: false,
+    adoptant_nom: '',
+    lieu_intervention: '',
+    date_sortie: '',
+    famille_accueil_actuelle: '',
+    mail_famille_accueil: '',
+    // Statuts rapides
+    remis_proprietaire: false,
+    a_l_adoption: false,
+    fa_en_vue_adoption: false,
+    cedere_autre_asso: false,
+    transfert_asso: false,
+    perdu: false,
+    reserve: false,
+    vole: false,
+    notes_excel: '',
   });
 
   useEffect(() => {
@@ -55,8 +106,10 @@ export function AnimalFormPage() {
       setForm({
         nom: a.nom || '',
         espece: a.espece || 'chien',
+        species_race: a.species_race || '',
         race: a.race || '',
         sexe: a.sexe || 'inconnu',
+        gender: a.gender || '',
         date_naissance: a.date_naissance || '',
         age_estime: a.age_estime || '',
         couleur: a.couleur || '',
@@ -64,9 +117,16 @@ export function AnimalFormPage() {
         taille: a.taille || '',
         sterilise: a.sterilise || false,
         vaccinne: a.vaccinne || false,
+        date_dernier_vaccin: a.date_dernier_vaccin || '',
         numero_icad: a.numero_icad || '',
+        icad_number: a.icad_number || '',
         numero_puce: a.numero_puce || '',
         statut: a.statut || 'signale',
+        status_pec: a.status_pec || '',
+        animal_state: a.animal_state || '',
+        withdrawal_cause: a.withdrawal_cause || '',
+        agent: a.agent || '',
+        date_pec: a.date_pec || '',
         description: a.description || '',
         comportement: a.comportement || '',
         sante_statut: a.sante_statut || 'bon',
@@ -74,6 +134,48 @@ export function AnimalFormPage() {
         photo_url: a.photo_url || '',
         lieu_actuel: a.lieu_actuel || '',
         date_prise_en_charge: a.date_prise_en_charge || '',
+        // ICAD/Documents
+        icad_done: a.icad_done || false,
+        requisition: a.requisition || false,
+        sortie_fourriere: a.sortie_fourriere || false,
+        icad_epa: a.icad_epa || false,
+        icad_non_epa: a.icad_non_epa || false,
+        certificat_cession: a.certificat_cession || false,
+        cni_recu: a.cni_recu || false,
+        duplicata_carte: a.duplicata_carte || false,
+        date_envoi_icad: a.date_envoi_icad || '',
+        date_valide_epa: a.date_valide_epa || '',
+        attente_icad: a.attente_icad || false,
+        // Santé
+        en_pension: a.en_pension || false,
+        primo_vaccination: a.primo_vaccination || false,
+        date_vaccin: a.date_vaccin || '',
+        rappel_vaccin: a.rappel_vaccin || false,
+        date_rappel: a.date_rappel || '',
+        diagnose: a.diagnose || '',
+        delais_rdv: a.delais_rdv || '',
+        date_diagnose: a.date_diagnose || '',
+        sterilisation: a.sterilisation || false,
+        date_sterilisation: a.date_sterilisation || '',
+        // Adoption/Sortie
+        caution: a.caution || '',
+        frais_adoption: a.frais_adoption || '',
+        adopte: a.adopte || false,
+        adoptant_nom: a.adoptant_nom || '',
+        lieu_intervention: a.lieu_intervention || '',
+        date_sortie: a.date_sortie || '',
+        famille_accueil_actuelle: a.famille_accueil_actuelle || '',
+        mail_famille_accueil: a.mail_famille_accueil || '',
+        // Statuts rapides
+        remis_proprietaire: a.remis_proprietaire || false,
+        a_l_adoption: a.a_l_adoption || false,
+        fa_en_vue_adoption: a.fa_en_vue_adoption || false,
+        cedere_autre_asso: a.cedere_autre_asso || false,
+        transfert_asso: a.transfert_asso || false,
+        perdu: a.perdu || false,
+        reserve: a.reserve || false,
+        vole: a.vole || false,
+        notes_excel: a.notes_excel || '',
       });
     }
     setLoading(false);
@@ -96,6 +198,14 @@ export function AnimalFormPage() {
       ...form,
       date_naissance: form.date_naissance || null,
       date_prise_en_charge: form.date_prise_en_charge || null,
+      date_pec: form.date_pec || null,
+      date_envoi_icad: form.date_envoi_icad || null,
+      date_valide_epa: form.date_valide_epa || null,
+      date_vaccin: form.date_vaccin || null,
+      date_rappel: form.date_rappel || null,
+      date_diagnose: form.date_diagnose || null,
+      date_sterilisation: form.date_sterilisation || null,
+      date_sortie: form.date_sortie || null,
     };
 
     try {
@@ -347,6 +457,133 @@ export function AnimalFormPage() {
           </div>
         </div>
 
+        {/* ICAD & Documents */}
+        <div className="card p-6">
+          <h2 className="mb-4 font-heading text-lg font-semibold text-neutral-900">ICAD & Documents</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div>
+              <label className="label">Agent (MODO)</label>
+              <input
+                type="text"
+                value={form.agent}
+                onChange={(e) => setForm({ ...form, agent: e.target.value })}
+                className="input"
+                placeholder="Morgan, Margareth..."
+              />
+            </div>
+            <div>
+              <label className="label">Date de PEC</label>
+              <input
+                type="date"
+                value={form.date_pec}
+                onChange={(e) => setForm({ ...form, date_pec: e.target.value })}
+                className="input"
+              />
+            </div>
+            <div>
+              <label className="label">Date envoi ICAD / Date valide EPA</label>
+              <input
+                type="date"
+                value={form.date_envoi_icad}
+                onChange={(e) => setForm({ ...form, date_envoi_icad: e.target.value })}
+                className="input"
+              />
+            </div>
+            <div>
+              <label className="label">Date valide EPA</label>
+              <input
+                type="date"
+                value={form.date_valide_epa}
+                onChange={(e) => setForm({ ...form, date_valide_epa: e.target.value })}
+                className="input"
+              />
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            <label className="flex items-center gap-2 text-sm text-neutral-700">
+              <input
+                type="checkbox"
+                checked={form.icad_done}
+                onChange={(e) => setForm({ ...form, icad_done: e.target.checked })}
+                className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+              />
+              ICAD fait
+            </label>
+            <label className="flex items-center gap-2 text-sm text-neutral-700">
+              <input
+                type="checkbox"
+                checked={form.requisition}
+                onChange={(e) => setForm({ ...form, requisition: e.target.checked })}
+                className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+              />
+              Réquisition
+            </label>
+            <label className="flex items-center gap-2 text-sm text-neutral-700">
+              <input
+                type="checkbox"
+                checked={form.sortie_fourriere}
+                onChange={(e) => setForm({ ...form, sortie_fourriere: e.target.checked })}
+                className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+              />
+              Sortie fourrière
+            </label>
+            <label className="flex items-center gap-2 text-sm text-neutral-700">
+              <input
+                type="checkbox"
+                checked={form.icad_epa}
+                onChange={(e) => setForm({ ...form, icad_epa: e.target.checked })}
+                className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+              />
+              ICAD EPA
+            </label>
+            <label className="flex items-center gap-2 text-sm text-neutral-700">
+              <input
+                type="checkbox"
+                checked={form.icad_non_epa}
+                onChange={(e) => setForm({ ...form, icad_non_epa: e.target.checked })}
+                className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+              />
+              ICAD non EPA
+            </label>
+            <label className="flex items-center gap-2 text-sm text-neutral-700">
+              <input
+                type="checkbox"
+                checked={form.certificat_cession}
+                onChange={(e) => setForm({ ...form, certificat_cession: e.target.checked })}
+                className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+              />
+              Certificat cession
+            </label>
+            <label className="flex items-center gap-2 text-sm text-neutral-700">
+              <input
+                type="checkbox"
+                checked={form.cni_recu}
+                onChange={(e) => setForm({ ...form, cni_recu: e.target.checked })}
+                className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+              />
+              CNI reçu
+            </label>
+            <label className="flex items-center gap-2 text-sm text-neutral-700">
+              <input
+                type="checkbox"
+                checked={form.duplicata_carte}
+                onChange={(e) => setForm({ ...form, duplicata_carte: e.target.checked })}
+                className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+              />
+              Duplicata carte
+            </label>
+            <label className="flex items-center gap-2 text-sm text-neutral-700">
+              <input
+                type="checkbox"
+                checked={form.attente_icad}
+                onChange={(e) => setForm({ ...form, attente_icad: e.target.checked })}
+                className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+              />
+              Attente ICAD
+            </label>
+          </div>
+        </div>
+
         {/* Santé & comportement */}
         <div className="card p-6">
           <h2 className="mb-4 font-heading text-lg font-semibold text-neutral-900">Santé & comportement</h2>
@@ -394,6 +631,285 @@ export function AnimalFormPage() {
                 placeholder="Histoire de l'animal, circonstances de la prise en charge..."
               />
             </div>
+          </div>
+        </div>
+
+        {/* Santé détaillée */}
+        <div className="card p-6">
+          <h2 className="mb-4 font-heading text-lg font-semibold text-neutral-900">Suivi santé & vaccinations</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div>
+              <label className="label">Date vaccination</label>
+              <input
+                type="date"
+                value={form.date_vaccin}
+                onChange={(e) => setForm({ ...form, date_vaccin: e.target.value })}
+                className="input"
+              />
+            </div>
+            <div>
+              <label className="label">Date rappel</label>
+              <input
+                type="date"
+                value={form.date_rappel}
+                onChange={(e) => setForm({ ...form, date_rappel: e.target.value })}
+                className="input"
+              />
+            </div>
+            <div>
+              <label className="label">Date stérilisation</label>
+              <input
+                type="date"
+                value={form.date_sterilisation}
+                onChange={(e) => setForm({ ...form, date_sterilisation: e.target.value })}
+                className="input"
+              />
+            </div>
+            <div>
+              <label className="label">Date diagnostic</label>
+              <input
+                type="date"
+                value={form.date_diagnose}
+                onChange={(e) => setForm({ ...form, date_diagnose: e.target.value })}
+                className="input"
+              />
+            </div>
+            <div>
+              <label className="label">Délais RDV</label>
+              <input
+                type="text"
+                value={form.delais_rdv}
+                onChange={(e) => setForm({ ...form, delais_rdv: e.target.value })}
+                className="input"
+                placeholder="2 semaines, 1 mois..."
+              />
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="label">Diagnostic</label>
+              <textarea
+                value={form.diagnose}
+                onChange={(e) => setForm({ ...form, diagnose: e.target.value })}
+                rows={2}
+                className="input"
+                placeholder="Diagnostic vétérinaire..."
+              />
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            <label className="flex items-center gap-2 text-sm text-neutral-700">
+              <input
+                type="checkbox"
+                checked={form.en_pension}
+                onChange={(e) => setForm({ ...form, en_pension: e.target.checked })}
+                className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+              />
+              En pension
+            </label>
+            <label className="flex items-center gap-2 text-sm text-neutral-700">
+              <input
+                type="checkbox"
+                checked={form.primo_vaccination}
+                onChange={(e) => setForm({ ...form, primo_vaccination: e.target.checked })}
+                className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+              />
+              Primo vaccination
+            </label>
+            <label className="flex items-center gap-2 text-sm text-neutral-700">
+              <input
+                type="checkbox"
+                checked={form.rappel_vaccin}
+                onChange={(e) => setForm({ ...form, rappel_vaccin: e.target.checked })}
+                className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+              />
+              Rappel fait
+            </label>
+            <label className="flex items-center gap-2 text-sm text-neutral-700">
+              <input
+                type="checkbox"
+                checked={form.sterilisation}
+                onChange={(e) => setForm({ ...form, sterilisation: e.target.checked })}
+                className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+              />
+              Stérilisé(e)
+            </label>
+          </div>
+        </div>
+
+        {/* Adoption & Sortie */}
+        <div className="card p-6">
+          <h2 className="mb-4 font-heading text-lg font-semibold text-neutral-900">Adoption & Sortie</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div>
+              <label className="label">Adoptant</label>
+              <input
+                type="text"
+                value={form.adoptant_nom}
+                onChange={(e) => setForm({ ...form, adoptant_nom: e.target.value })}
+                className="input"
+                placeholder="Nom de l'adoptant"
+              />
+            </div>
+            <div>
+              <label className="label">Date de sortie</label>
+              <input
+                type="date"
+                value={form.date_sortie}
+                onChange={(e) => setForm({ ...form, date_sortie: e.target.value })}
+                className="input"
+              />
+            </div>
+            <div>
+              <label className="label">Lieu d'intervention</label>
+              <input
+                type="text"
+                value={form.lieu_intervention}
+                onChange={(e) => setForm({ ...form, lieu_intervention: e.target.value })}
+                className="input"
+                placeholder="Ville, lieu..."
+              />
+            </div>
+            <div>
+              <label className="label">Caution</label>
+              <input
+                type="text"
+                value={form.caution}
+                onChange={(e) => setForm({ ...form, caution: e.target.value })}
+                className="input"
+                placeholder="Montant"
+              />
+            </div>
+            <div>
+              <label className="label">Frais d'adoption</label>
+              <input
+                type="text"
+                value={form.frais_adoption}
+                onChange={(e) => setForm({ ...form, frais_adoption: e.target.value })}
+                className="input"
+                placeholder="Montant"
+              />
+            </div>
+            <div>
+              <label className="label">Famille d'accueil actuelle</label>
+              <input
+                type="text"
+                value={form.famille_accueil_actuelle}
+                onChange={(e) => setForm({ ...form, famille_accueil_actuelle: e.target.value })}
+                className="input"
+                placeholder="Nom FA"
+              />
+            </div>
+            <div>
+              <label className="label">Email FA</label>
+              <input
+                type="email"
+                value={form.mail_famille_accueil}
+                onChange={(e) => setForm({ ...form, mail_famille_accueil: e.target.value })}
+                className="input"
+                placeholder="email@exemple.com"
+              />
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            <label className="flex items-center gap-2 text-sm text-neutral-700">
+              <input
+                type="checkbox"
+                checked={form.adopte}
+                onChange={(e) => setForm({ ...form, adopte: e.target.checked })}
+                className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+              />
+              Adopté
+            </label>
+          </div>
+        </div>
+
+        {/* Statuts rapides */}
+        <div className="card p-6">
+          <h2 className="mb-4 font-heading text-lg font-semibold text-neutral-900">Statuts rapides</h2>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            <label className="flex items-center gap-2 text-sm text-neutral-700">
+              <input
+                type="checkbox"
+                checked={form.remis_proprietaire}
+                onChange={(e) => setForm({ ...form, remis_proprietaire: e.target.checked })}
+                className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+              />
+              Remis à propriétaire
+            </label>
+            <label className="flex items-center gap-2 text-sm text-neutral-700">
+              <input
+                type="checkbox"
+                checked={form.a_l_adoption}
+                onChange={(e) => setForm({ ...form, a_l_adoption: e.target.checked })}
+                className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+              />
+              À l'adoption
+            </label>
+            <label className="flex items-center gap-2 text-sm text-neutral-700">
+              <input
+                type="checkbox"
+                checked={form.fa_en_vue_adoption}
+                onChange={(e) => setForm({ ...form, fa_en_vue_adoption: e.target.checked })}
+                className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+              />
+              FA en vue adoption
+            </label>
+            <label className="flex items-center gap-2 text-sm text-neutral-700">
+              <input
+                type="checkbox"
+                checked={form.cedere_autre_asso}
+                onChange={(e) => setForm({ ...form, cedere_autre_asso: e.target.checked })}
+                className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+              />
+              À céder autre asso
+            </label>
+            <label className="flex items-center gap-2 text-sm text-neutral-700">
+              <input
+                type="checkbox"
+                checked={form.transfert_asso}
+                onChange={(e) => setForm({ ...form, transfert_asso: e.target.checked })}
+                className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+              />
+              Transfert asso
+            </label>
+            <label className="flex items-center gap-2 text-sm text-neutral-700">
+              <input
+                type="checkbox"
+                checked={form.perdu}
+                onChange={(e) => setForm({ ...form, perdu: e.target.checked })}
+                className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+              />
+              Perdu
+            </label>
+            <label className="flex items-center gap-2 text-sm text-neutral-700">
+              <input
+                type="checkbox"
+                checked={form.reserve}
+                onChange={(e) => setForm({ ...form, reserve: e.target.checked })}
+                className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+              />
+              Réservé
+            </label>
+            <label className="flex items-center gap-2 text-sm text-neutral-700">
+              <input
+                type="checkbox"
+                checked={form.vole}
+                onChange={(e) => setForm({ ...form, vole: e.target.checked })}
+                className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+              />
+              Volé
+            </label>
+          </div>
+          <div className="mt-4">
+            <label className="label">Notes Excel</label>
+            <textarea
+              value={form.notes_excel}
+              onChange={(e) => setForm({ ...form, notes_excel: e.target.value })}
+              rows={3}
+              className="input"
+              placeholder="Notes supplémentaires du fichier Excel..."
+            />
           </div>
         </div>
 

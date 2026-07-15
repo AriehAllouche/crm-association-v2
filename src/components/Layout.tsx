@@ -18,6 +18,7 @@ import {
   X,
   ClipboardList,
   Upload,
+  TestTube,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
@@ -31,13 +32,14 @@ const navItems = [
   { to: '/familles-accueil', label: 'Familles d\'accueil', icon: Home },
   { to: '/adoptions', label: 'Adoptions', icon: HeartHandshake },
   { to: '/veterinaires', label: 'Vétérinaires', icon: Stethoscope },
-  { to: '/justice', label: 'Justice', icon: Scale },
-  { to: '/pensions', label: 'Pensions / Fourrières', icon: Building2 },
-  { to: '/transports', label: 'Transports', icon: Truck },
-  { to: '/documents', label: 'Documents', icon: FileText },
-  { to: '/enqueteurs', label: 'Enquêteurs', icon: Users },
-  { to: '/registre', label: 'Registre légal', icon: ClipboardList },
-  { to: '/import', label: 'Import Excel', icon: Upload },
+  { to: '/test-google-drive', label: 'Test Google Drive', icon: TestTube, test: true },
+  { to: '/justice', label: 'Justice', icon: Scale, v2: true },
+  { to: '/pensions', label: 'Pensions / Fourrières', icon: Building2, v2: true },
+  { to: '/transports', label: 'Transports', icon: Truck, v2: true },
+  { to: '/documents', label: 'Documents', icon: FileText, v2: true },
+  { to: '/enqueteurs', label: 'Enquêteurs', icon: Users, v2: true },
+  { to: '/registre', label: 'Registre légal', icon: ClipboardList, v2: true },
+  { to: '/import', label: 'Import Excel', icon: Upload, v2: true },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -73,7 +75,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   }
                 >
                   <item.icon size={18} strokeWidth={2} />
-                  {item.label}
+                  <span className="flex-1">{item.label}</span>
+                  {item.test && (
+                    <span className="flex h-5 items-center rounded-full bg-info-100 px-2 text-xs font-semibold text-info-700">
+                      TEST
+                    </span>
+                  )}
+                  {item.v2 && (
+                    <span className="flex h-5 items-center rounded-full bg-warning-100 px-2 text-xs font-semibold text-warning-700">
+                      V2
+                    </span>
+                  )}
                 </NavLink>
               </li>
             ))}
@@ -134,7 +146,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       }
                     >
                       <item.icon size={18} />
-                      {item.label}
+                      <span className="flex-1">{item.label}</span>
+                      {item.v2 && (
+                        <span className="flex h-5 items-center rounded-full bg-warning-100 px-2 text-xs font-semibold text-warning-700">
+                          V2
+                        </span>
+                      )}
                     </NavLink>
                   </li>
                 ))}
