@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Search, Dog, Siren, Home, HeartHandshake, Stethoscope, Scale, Building2, Users, FileText, X } from 'lucide-react';
+import { Search, Dog, Siren, Home, HeartHandshake, Stethoscope, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { LoadingSpinner, Badge } from '../components/ui';
 import { formatDate } from '../lib/constants';
@@ -39,16 +39,17 @@ export function SearchPage() {
     try {
       const searchTerm = `%${searchQuery}%`;
 
-      // Recherche parallèle dans toutes les tables
+      // Recherche parallèle, limitée aux modules livrés en V1.
+      // Justice, Pensions et Enquêteurs en sont exclus: leurs pages affichent
+      // « Fonctionnalité à venir », donc un résultat cliquable menait droit
+      // dans le mur. Voir V2_MODULES dans lib/features.ts — les rétablir ici
+      // fait partie de la promotion d'un module en V1.
       const [
         animauxRes,
         signalementsRes,
         famillesRes,
         adoptionsRes,
         veterinairesRes,
-        justiceRes,
-        pensionsRes,
-        enqueteursRes,
       ] = await Promise.all([
         supabase
           .from('animals')
@@ -74,21 +75,6 @@ export function SearchPage() {
           .from('veterinaires')
           .select('id, nom, clinique, ville, partenaire')
           .or(`nom.ilike.${searchTerm},clinique.ilike.${searchTerm},ville.ilike.${searchTerm}`)
-          .limit(10),
-        supabase
-          .from('justice_cases')
-          .select('id, numero_parquet, tribunal, statut')
-          .or(`numero_parquet.ilike.${searchTerm},tribunal.ilike.${searchTerm},avocat.ilike.${searchTerm}`)
-          .limit(10),
-        supabase
-          .from('pensions')
-          .select('id, nom, type, ville')
-          .or(`nom.ilike.${searchTerm},ville.ilike.${searchTerm}`)
-          .limit(10),
-        supabase
-          .from('enqueteurs')
-          .select('id, nom, prenom, ville, actif')
-          .or(`nom.ilike.${searchTerm},prenom.ilike.${searchTerm},ville.ilike.${searchTerm}`)
           .limit(10),
       ]);
 
@@ -161,46 +147,6 @@ export function SearchPage() {
           icon: Stethoscope,
           badge: v.partenaire ? 'Partenaire' : '',
           badgeColor: v.partenaire ? 'bg-success-100 text-success-700' : undefined,
-        });
-      });
-
-      // Justice
-      (justiceRes.data ?? []).forEach((j: any) => {
-        allResults.push({
-          type: 'justice',
-          id: j.id,
-          title: j.numero_parquet || 'Dossier sans numéro',
-          subtitle: j.tribunal || 'Tribunal',
-          link: '/justice',
-          icon: Scale,
-          badge: j.statut,
-          badgeColor: 'bg-secondary-100 text-secondary-700',
-        });
-      });
-
-      // Pensions
-      (pensionsRes.data ?? []).forEach((p: any) => {
-        allResults.push({
-          type: 'pension',
-          id: p.id,
-          title: p.nom,
-          subtitle: p.type || 'Pension',
-          link: '/pensions',
-          icon: Building2,
-        });
-      });
-
-      // Enquêteurs
-      (enqueteursRes.data ?? []).forEach((e: any) => {
-        allResults.push({
-          type: 'enqueteur',
-          id: e.id,
-          title: `${e.nom} ${e.prenom || ''}`,
-          subtitle: e.ville || 'Enquêteur',
-          link: '/enqueteurs',
-          icon: Users,
-          badge: e.actif ? 'Actif' : 'Inactif',
-          badgeColor: e.actif ? 'bg-success-100 text-success-700' : 'bg-neutral-100 text-neutral-600',
         });
       });
 
@@ -309,7 +255,6 @@ export function SearchPage() {
             <div className="flex items-center gap-2"><Home size={16} /> Familles d'accueil</div>
             <div className="flex items-center gap-2"><HeartHandshake size={16} /> Adoptions</div>
             <div className="flex items-center gap-2"><Stethoscope size={16} /> Vétérinaires</div>
-            <div className="flex items-center gap-2"><Scale size={16} /> Justice</div>
           </div>
         </div>
       )}

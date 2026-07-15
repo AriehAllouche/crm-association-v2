@@ -366,7 +366,10 @@ export interface DocumentItem {
   module_id?: string;
   type_document: DocumentType;
   nom_fichier: string;
-  url: string;
+  /** Lien externe (Google Drive...). Absent si le fichier est dans le bucket. */
+  url?: string | null;
+  /** Chemin dans le bucket privé `documents`. Lu via une URL signée. */
+  storage_path?: string | null;
   description?: string;
   folder?: string;
   taille?: number;

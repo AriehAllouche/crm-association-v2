@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase';
 import { fetchFamillesForSelect, fetchVetsForSelect, fetchPensionsForSelect, type FamilleAccueilAnimal, type FamilleAccueilAnimalStatut } from '../lib/animalDetails';
 import { syncAnimal, syncFamilleAccueilCount, syncPensionCount } from '../lib/animalSync';
 import { Modal, Badge } from './ui';
+import { DocumentUpload, emptyDocumentSource, type DocumentSource } from './DocumentUpload';
+import { DocumentFolderForm } from './DocumentFolderForm';
 import { formatDate } from '../lib/constants';
 
 interface InlineFormProps {
@@ -599,87 +601,6 @@ export function InlinePensionForm({ animalId, onSaved }: InlineFormProps) {
   );
 }
 
-export function InlineDocumentForm({ animalId, onSaved }: InlineFormProps) {
-  const [open, setOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    type_document: 'photo' as 'contrat' | 'facture' | 'devis' | 'certificat' | 'jugement' | 'photo' | 'video' | 'compte_rendu' | 'carte' | 'autre',
-    nom_fichier: '',
-    url: '',
-    description: '',
-  });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setError(null);
-    try {
-      const { error } = await supabase.from('documents').insert({
-        animal_id: animalId,
-        module: 'animal',
-        type_document: form.type_document,
-        nom_fichier: form.nom_fichier,
-        url: form.url,
-        description: form.description || null,
-      });
-      if (error) throw new Error(error.message);
-      setOpen(false);
-      onSaved();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <>
-      <button onClick={() => setOpen(true)} className="btn-ghost text-sm">
-        <Plus size={16} /> Document
-      </button>
-      <Modal open={open} onClose={() => setOpen(false)} title="Nouveau document">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && <div className="rounded-lg bg-error-50 px-4 py-2 text-sm text-error-700">{error}</div>}
-          <div>
-            <label className="label">Type *</label>
-            <select value={form.type_document} onChange={(e) => setForm({ ...form, type_document: e.target.value as typeof form.type_document })} className="input">
-              <option value="photo">Photo</option>
-              <option value="video">Vidéo</option>
-              <option value="contrat">Contrat</option>
-              <option value="facture">Facture</option>
-              <option value="devis">Devis</option>
-              <option value="certificat">Certificat</option>
-              <option value="jugement">Jugement</option>
-              <option value="compte_rendu">Compte-rendu</option>
-              <option value="carte">Carte</option>
-              <option value="autre">Autre</option>
-            </select>
-          </div>
-          <div>
-            <label className="label">Nom du fichier *</label>
-            <input type="text" required value={form.nom_fichier} onChange={(e) => setForm({ ...form, nom_fichier: e.target.value })} className="input" />
-          </div>
-          <div>
-            <label className="label">URL *</label>
-            <input type="text" required value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} className="input" placeholder="https://..." />
-          </div>
-          <div>
-            <label className="label">Description</label>
-            <input type="text" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="input" />
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={() => setOpen(false)} className="btn-secondary">Annuler</button>
-            <button type="submit" disabled={saving} className="btn-primary">
-              {saving ? <Loader2 size={16} className="animate-spin" /> : null} Enregistrer
-            </button>
-          </div>
-        </form>
-      </Modal>
-    </>
-  );
-}
-
 /* ============================================================
  * FORMULAIRES DE CRÉATION D'ENTITÉ + LIAISON IMMÉDIATE
  * Permet de créer une nouvelle entité (vétérinaire, FA, etc.)
@@ -888,19 +809,32 @@ export function InlineCreateFamilleForm({ animalId, onSaved }: InlineFormProps) 
   );
 }
 
+const emptyDocumentForm = () => ({
+  type_document: 'photo' as 'contrat' | 'facture' | 'devis' | 'certificat' | 'jugement' | 'photo' | 'video' | 'compte_rendu' | 'carte' | 'autre',
+  nom_fichier: '',
+  description: '',
+  folder: 'Général',
+  source: emptyDocumentSource(),
+});
+
 export function InlineCreateDocumentForm({ animalId, onSaved }: InlineFormProps) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    type_document: 'photo' as 'contrat' | 'facture' | 'devis' | 'certificat' | 'jugement' | 'photo' | 'video' | 'compte_rendu' | 'carte' | 'autre',
-    nom_fichier: '',
-    url: '',
-    description: '',
-  });
+  const [form, setForm] = useState(emptyDocumentForm);
+
+  const handleSourceChange = (source: DocumentSource) => {
+    setForm((prev) => ({ ...prev, source, nom_fichier: prev.nom_fichier || source.nom_fichier }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!form.source.storage_path && !form.source.url) {
+      setError('Envoyez un fichier ou renseignez un lien externe.');
+      return;
+    }
+
     setSaving(true);
     setError(null);
     try {
@@ -909,12 +843,15 @@ export function InlineCreateDocumentForm({ animalId, onSaved }: InlineFormProps)
         module: 'animal',
         type_document: form.type_document,
         nom_fichier: form.nom_fichier,
-        url: form.url,
+        url: form.source.url,
+        storage_path: form.source.storage_path,
+        taille: form.source.taille,
         description: form.description || null,
+        folder: form.folder || 'Général',
       });
       if (error) throw new Error(error.message);
       setOpen(false);
-      setForm({ type_document: 'photo', nom_fichier: '', url: '', description: '' });
+      setForm(emptyDocumentForm());
       onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur');
@@ -947,17 +884,22 @@ export function InlineCreateDocumentForm({ animalId, onSaved }: InlineFormProps)
             </select>
           </div>
           <div>
-            <label className="label">Nom du fichier *</label>
-            <input type="text" required value={form.nom_fichier} onChange={(e) => setForm({ ...form, nom_fichier: e.target.value })} className="input" />
+            <label className="label">Fichier *</label>
+            <DocumentUpload value={form.source} onChange={handleSourceChange} pathPrefix={animalId} />
           </div>
           <div>
-            <label className="label">URL *</label>
-            <input type="text" required value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} className="input" placeholder="https://..." />
+            <label className="label">Nom du fichier *</label>
+            <input type="text" required value={form.nom_fichier} onChange={(e) => setForm({ ...form, nom_fichier: e.target.value })} className="input" />
           </div>
           <div>
             <label className="label">Description</label>
             <input type="text" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="input" />
           </div>
+          <DocumentFolderForm
+            animalId={animalId}
+            selectedFolder={form.folder}
+            onFolderSelected={(folder) => setForm((prev) => ({ ...prev, folder }))}
+          />
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={() => setOpen(false)} className="btn-secondary">Annuler</button>
             <button type="submit" disabled={saving} className="btn-primary">

@@ -10,6 +10,7 @@ import { SignalementsPage } from './pages/SignalementsPage';
 import { FamillesAccueilPage } from './pages/FamillesAccueilPage';
 import { AdoptionsPage } from './pages/AdoptionsPage';
 import { VeterinairesPage } from './pages/VeterinairesPage';
+import { DocumentsPage } from './pages/DocumentsPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
 import { SearchPage } from './pages/SearchPage';
 import { GoogleDriveTest } from './components/GoogleDriveTest';
@@ -162,7 +163,7 @@ function AppRoutes() {
         path="/documents"
         element={
           <ProtectedRoute>
-            <ComingSoonPage featureName="Documents" />
+            <DocumentsPage />
           </ProtectedRoute>
         }
       />

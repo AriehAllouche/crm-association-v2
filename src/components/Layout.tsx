@@ -18,13 +18,15 @@ import {
   X,
   ClipboardList,
   Upload,
-  TestTube,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Logo } from './Logo';
 import { roleLabels } from '../lib/constants';
+import { isV2 } from '../lib/features';
 
+// `module` fait le lien avec V2_MODULES: le badge « V2 » en découle, plutôt
+// que d'être répété ici au risque de diverger.
 const navItems = [
   { to: '/', label: 'Tableau de bord', icon: LayoutDashboard, end: true },
   { to: '/animaux', label: 'Animaux', icon: Dog },
@@ -32,14 +34,13 @@ const navItems = [
   { to: '/familles-accueil', label: 'Familles d\'accueil', icon: Home },
   { to: '/adoptions', label: 'Adoptions', icon: HeartHandshake },
   { to: '/veterinaires', label: 'Vétérinaires', icon: Stethoscope },
-  { to: '/test-google-drive', label: 'Test Google Drive', icon: TestTube, test: true },
-  { to: '/justice', label: 'Justice', icon: Scale, v2: true },
-  { to: '/pensions', label: 'Pensions / Fourrières', icon: Building2, v2: true },
-  { to: '/transports', label: 'Transports', icon: Truck, v2: true },
-  { to: '/documents', label: 'Documents', icon: FileText, v2: true },
-  { to: '/enqueteurs', label: 'Enquêteurs', icon: Users, v2: true },
-  { to: '/registre', label: 'Registre légal', icon: ClipboardList, v2: true },
-  { to: '/import', label: 'Import Excel', icon: Upload, v2: true },
+  { to: '/documents', label: 'Documents', icon: FileText, module: 'documents' },
+  { to: '/justice', label: 'Justice', icon: Scale, module: 'justice' },
+  { to: '/pensions', label: 'Pensions / Fourrières', icon: Building2, module: 'pension' },
+  { to: '/transports', label: 'Transports', icon: Truck, module: 'transport' },
+  { to: '/enqueteurs', label: 'Enquêteurs', icon: Users, module: 'enqueteurs' },
+  { to: '/registre', label: 'Registre légal', icon: ClipboardList, module: 'registre' },
+  { to: '/import', label: 'Import Excel', icon: Upload, module: 'import' },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -76,12 +77,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 >
                   <item.icon size={18} strokeWidth={2} />
                   <span className="flex-1">{item.label}</span>
-                  {item.test && (
-                    <span className="flex h-5 items-center rounded-full bg-info-100 px-2 text-xs font-semibold text-info-700">
-                      TEST
-                    </span>
-                  )}
-                  {item.v2 && (
+                  {item.module && isV2(item.module) && (
                     <span className="flex h-5 items-center rounded-full bg-warning-100 px-2 text-xs font-semibold text-warning-700">
                       V2
                     </span>
@@ -147,7 +143,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     >
                       <item.icon size={18} />
                       <span className="flex-1">{item.label}</span>
-                      {item.v2 && (
+                      {item.module && isV2(item.module) && (
                         <span className="flex h-5 items-center rounded-full bg-warning-100 px-2 text-xs font-semibold text-warning-700">
                           V2
                         </span>

@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { FolderPlus, X } from 'lucide-react';
 
 interface DocumentFolderFormProps {
-  animalId: string;
+  animalId?: string;
   onFolderSelected: (folder: string) => void;
   selectedFolder?: string;
 }
@@ -28,17 +28,16 @@ export function DocumentFolderForm({
 
   const loadExistingFolders = async () => {
     try {
-      const { data, error } = await supabase
-        .from('documents')
-        .select('folder')
-        .eq('animal_id', animalId)
-        .not('folder', 'is', null);
+      // Sans animal sélectionné, on propose les dossiers de toute la base:
+      // filtrer sur animal_id = '' ferait échouer la requête (UUID invalide).
+      let query = supabase.from('documents').select('folder').not('folder', 'is', null);
+      if (animalId) query = query.eq('animal_id', animalId);
 
+      const { data, error } = await query;
       if (error) throw error;
 
-      const existingFolders = [...new Set(data?.map(d => d.folder).filter(Boolean) || [])];
-      const allFolders = [...new Set([...DEFAULT_FOLDERS, ...existingFolders])];
-      setFolders(allFolders);
+      const existingFolders = (data ?? []).map((d) => d.folder).filter(Boolean) as string[];
+      setFolders([...new Set([...DEFAULT_FOLDERS, ...existingFolders, selectedFolder])]);
     } catch (error) {
       console.error('Erreur lors du chargement des dossiers:', error);
     }

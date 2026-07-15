@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { ChevronDown, ChevronRight, FileText, Calendar, Download } from 'lucide-react';
+import { ChevronDown, ChevronRight, FileText, Calendar, Download, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { openDocument, formatFileSize, deleteDocument } from '../lib/documentUpload';
 
 interface Document {
   id: string;
-  titre: string;
+  nom_fichier: string;
   description?: string;
-  fichier_url?: string;
-  type?: string;
-  date_document?: string;
-  folder: string;
+  url?: string | null;
+  storage_path?: string | null;
+  taille?: number | null;
+  type_document?: string;
+  folder?: string;
   created_at: string;
 }
 
@@ -23,6 +25,34 @@ export function DocumentFolderView({ animalId }: DocumentFolderViewProps) {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const [error, setError] = useState<string | null>(null);
+  const [docToDelete, setDocToDelete] = useState<Document | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleOpen = async (doc: Document) => {
+    setError(null);
+    try {
+      await openDocument(doc);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Impossible d\'ouvrir le document');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!docToDelete) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await deleteDocument(docToDelete);
+      setDocToDelete(null);
+      loadDocuments();
+    } catch (err) {
+      setDocToDelete(null);
+      setError(err instanceof Error ? err.message : 'Erreur lors de la suppression');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   // Charger les documents
   const loadDocuments = async () => {
@@ -100,6 +130,10 @@ export function DocumentFolderView({ animalId }: DocumentFolderViewProps) {
 
   return (
     <div className="space-y-4">
+      {error && (
+        <div className="rounded-lg bg-error-50 px-4 py-3 text-sm text-error-700">{error}</div>
+      )}
+
       {/* Actions globales */}
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-neutral-700">
@@ -161,11 +195,11 @@ export function DocumentFolderView({ animalId }: DocumentFolderViewProps) {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-medium text-neutral-900 truncate">
-                            {doc.titre}
+                            {doc.nom_fichier}
                           </p>
-                          {doc.type && (
+                          {doc.type_document && (
                             <span className="text-xs text-neutral-500 capitalize">
-                              • {doc.type}
+                              • {doc.type_document}
                             </span>
                           )}
                         </div>
@@ -175,30 +209,35 @@ export function DocumentFolderView({ animalId }: DocumentFolderViewProps) {
                           </p>
                         )}
                         <div className="flex items-center gap-3 mt-1.5 text-xs text-neutral-400">
-                          {doc.date_document && (
-                            <div className="flex items-center gap-1">
-                              <Calendar size={12} />
-                              <span>
-                                {format(new Date(doc.date_document), 'dd MMM yyyy', { locale: fr })}
-                              </span>
-                            </div>
-                          )}
-                          <span>
-                                Ajouté le {format(new Date(doc.created_at), 'dd MMM yyyy', { locale: fr })}
-                              </span>
+                          <div className="flex items-center gap-1">
+                            <Calendar size={12} />
+                            <span>
+                              Ajouté le {format(new Date(doc.created_at), 'dd MMM yyyy', { locale: fr })}
+                            </span>
+                          </div>
+                          {doc.taille ? <span>{formatFileSize(doc.taille)}</span> : null}
                         </div>
                       </div>
-                      {doc.fichier_url && (
-                        <a
-                          href={doc.fichier_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex-shrink-0 p-2 text-neutral-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                          title="Télécharger"
+                      <div className="flex flex-shrink-0 items-center gap-1">
+                        {(doc.storage_path || doc.url) && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpen(doc)}
+                            className="p-2 text-neutral-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                            title="Ouvrir le document"
+                          >
+                            <Download size={18} />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => { setError(null); setDocToDelete(doc); }}
+                          className="p-2 text-neutral-400 hover:text-error-600 hover:bg-error-50 rounded-lg transition-colors"
+                          title="Supprimer le document"
                         >
-                          <Download size={18} />
-                        </a>
-                      )}
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -207,6 +246,29 @@ export function DocumentFolderView({ animalId }: DocumentFolderViewProps) {
           );
         })}
       </div>
+
+      {/* Confirmation de suppression */}
+      {docToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="card mx-4 max-w-md p-6">
+            <h3 className="font-heading text-lg font-semibold text-neutral-900">Confirmer la suppression</h3>
+            <p className="mt-2 text-sm text-neutral-600">
+              Voulez-vous vraiment supprimer <strong>{docToDelete.nom_fichier}</strong> ?
+              {docToDelete.storage_path
+                ? ' Le fichier sera définitivement effacé du stockage.'
+                : ' Le lien externe sera retiré du CRM (le fichier d\'origine n\'est pas touché).'}
+            </p>
+            <div className="mt-4 flex justify-end gap-3">
+              <button onClick={() => setDocToDelete(null)} className="btn-secondary" disabled={deleting}>
+                Annuler
+              </button>
+              <button onClick={handleDelete} className="btn-primary bg-error-600 hover:bg-error-700" disabled={deleting}>
+                {deleting ? 'Suppression...' : 'Supprimer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

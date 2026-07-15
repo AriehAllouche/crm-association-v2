@@ -11,7 +11,6 @@ import {
   Home,
   Building2,
   Users,
-  Scale,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { PageHeader, StatCard, LoadingSpinner, Badge } from '../components/ui';
@@ -37,8 +36,6 @@ export function DashboardPage() {
     signalementsOuverts: 0,
     adoptionsEnCours: 0,
     famillesActives: 0,
-    pensionsActives: 0,
-    dossiersJustice: 0,
     coutTotal: 0,
   });
   const [recentAnimaux, setRecentAnimaux] = useState<Animal[]>([]);
@@ -54,15 +51,15 @@ export function DashboardPage() {
     // Générer automatiquement les alertes
     await generateAllAlerts();
 
-    const [animauxRes, signalementsRes, adoptionsRes, depensesRes, alertsRes, famillesRes, pensionsRes, justiceRes] = await Promise.all([
+    // Justice et Pensions sont reportés en V2: ne pas les interroger ici, le
+    // tableau de bord ne doit pas exposer de modules annoncés « à venir ».
+    const [animauxRes, signalementsRes, adoptionsRes, depensesRes, alertsRes, famillesRes] = await Promise.all([
       supabase.from('animals').select('*').order('created_at', { ascending: false }).limit(5),
       supabase.from('signalements').select('*', { count: 'exact' }).in('statut', ['nouveau', 'en_cours']),
       supabase.from('adoptions').select('*', { count: 'exact' }).not('statut', 'in', '("adoptee","refusee")'),
       supabase.from('depenses').select('montant'),
       supabase.from('alerts').select('*, animal:animals(*)').eq('statut', 'active').order('date_echeance').limit(10),
       supabase.from('famille_accueils').select('*', { count: 'exact' }).eq('contrat_actif', true),
-      supabase.from('pensions').select('*', { count: 'exact' }),
-      supabase.from('justice_cases').select('*', { count: 'exact' }).in('statut', ['nouveau', 'en_cours', 'en_attente']),
     ]);
 
     const animaux = (animauxRes.data ?? []) as Animal[];
@@ -77,8 +74,6 @@ export function DashboardPage() {
       signalementsOuverts: signalementsRes.count ?? 0,
       adoptionsEnCours: adoptionsRes.count ?? 0,
       famillesActives: famillesRes.count ?? 0,
-      pensionsActives: pensionsRes.count ?? 0,
-      dossiersJustice: justiceRes.count ?? 0,
       coutTotal: (depensesRes.data ?? []).reduce((sum, d) => sum + (d.montant ?? 0), 0),
     });
 
@@ -106,7 +101,6 @@ export function DashboardPage() {
         <StatCard label="Signalements" value={stats.signalementsOuverts} icon={Siren} color="warning" />
         <StatCard label="Adoptions" value={stats.adoptionsEnCours} icon={HeartHandshake} color="success" />
         <StatCard label="Familles actives" value={stats.famillesActives} icon={Home} color="primary" />
-        <StatCard label="Justice" value={stats.dossiersJustice} icon={Scale} color="secondary" />
         <StatCard label="Alertes" value={alerts.length} icon={AlertTriangle} color="warning" />
       </div>
 

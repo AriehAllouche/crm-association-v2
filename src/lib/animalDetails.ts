@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { isV2 } from './features';
 import type {
   Animal, Signalement, Adoption, VeterinaireVisite, JusticeCase,
   PensionSejour, Transport, DocumentItem, Depense, Communication,
@@ -152,7 +153,11 @@ async function fetchAnimalDetailsFallback(animalId: string): Promise<AnimalDetai
   for (const d of depensesRes.data ?? []) {
     timeline.push({ date: d.date_depense, type: 'depense', title: 'Dépense', description: `${d.description} — ${d.montant}€` });
   }
-  timeline.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  // Les types d'événements reprennent les clés de module ('justice',
+  // 'pension'...): ceux reportés en V2 sont masqués, leurs onglets et leurs
+  // pages annonçant « à venir ».
+  const timelineV1 = timeline.filter((e) => !isV2(e.type));
+  timelineV1.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return {
     animal: animalRes.data as Animal,
@@ -169,7 +174,7 @@ async function fetchAnimalDetailsFallback(animalId: string): Promise<AnimalDetai
     familles_accueil: (faRes.data ?? []) as FamilleAccueilAnimal[],
     alerts: (alertsRes.data ?? []) as Alert[],
     cout_total,
-    timeline,
+    timeline: timelineV1,
     status_history: (statusHistoryRes.data ?? []) as StatusHistoryEvent[],
   };
 }

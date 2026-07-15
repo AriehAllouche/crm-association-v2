@@ -10,6 +10,8 @@ import { supabase } from '../lib/supabase';
 import { LoadingSpinner, Badge, EmptyState } from '../components/ui';
 import { HistoryTimeline } from '../components/HistoryTimeline';
 import { getFamillesAccueilStatuts, type FamilleAccueilStatutInfo } from '../lib/familleAccueil';
+import { openDocument } from '../lib/documentUpload';
+import { isV2 } from '../lib/features';
 import {
   InlineVetVisitForm, InlineFamilleAccueilForm, InlineTransportForm,
   InlineDepenseForm, InlinePensionForm,
@@ -135,7 +137,11 @@ export function AnimalDetailPage() {
     { id: 'depenses', label: 'Coûts', icon: Euro, count: depenses.length },
     { id: 'communication', label: 'Communication', icon: Activity, count: communications.length },
     { id: 'registre', label: 'Registre', icon: Calendar, count: registre.length },
-  ].filter((t) => t.count > 0 || ['timeline', 'historique', 'famille', 'veterinaire', 'documents', 'depenses', 'registre'].includes(t.id));
+  ]
+    // Les modules reportés en V2 sont annoncés « à venir » dans la navigation:
+    // les exposer ici, remplis de données, contredirait cette promesse.
+    .filter((t) => !isV2(t.id))
+    .filter((t) => t.count > 0 || ['timeline', 'historique', 'famille', 'veterinaire', 'documents', 'depenses', 'registre'].includes(t.id));
 
   return (
     <div>
@@ -578,7 +584,16 @@ export function AnimalDetailPage() {
                         <p className="text-xs text-neutral-500">{doc.type_document} · {formatDate(doc.created_at)}</p>
                       </div>
                     </div>
-                    <a href={doc.url} target="_blank" rel="noopener noreferrer" className="btn-ghost">Voir <ChevronRight size={16} /></a>
+                    {/* Bucket privé: le lien de lecture est signé à la demande. */}
+                    <button
+                      type="button"
+                      onClick={() => openDocument(doc).catch((err) =>
+                        setError(err instanceof Error ? err.message : 'Impossible d\'ouvrir le document')
+                      )}
+                      className="btn-ghost"
+                    >
+                      Voir <ChevronRight size={16} />
+                    </button>
                   </div>
                 ))}
               </div>

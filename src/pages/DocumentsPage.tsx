@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, FileText, Search, Filter, Loader2, ExternalLink, FileCheck, Folder } from 'lucide-react';
+import { Plus, FileText, Search, Filter, Loader2, ExternalLink, FileCheck, Folder, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { PageHeader, LoadingSpinner, EmptyState, Badge, Modal } from '../components/ui';
 import { DocumentFolderForm } from '../components/DocumentFolderForm';
+import { DocumentUpload, emptyDocumentSource, type DocumentSource } from '../components/DocumentUpload';
+import { openDocument, formatFileSize, deleteDocument } from '../lib/documentUpload';
 import { formatDate } from '../lib/constants';
 import type { DocumentItem, DocumentModule, DocumentType, Animal } from '../types';
 
@@ -51,9 +53,9 @@ const emptyForm = {
   module: 'animal' as DocumentModule,
   type_document: 'autre' as DocumentType,
   nom_fichier: '',
-  url: '',
   description: '',
   folder: 'Général',
+  source: emptyDocumentSource(),
 };
 
 export function DocumentsPage() {
@@ -65,6 +67,8 @@ export function DocumentsPage() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [detailDoc, setDetailDoc] = useState<DocumentItem | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -106,6 +110,12 @@ export function DocumentsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!form.source.storage_path && !form.source.url) {
+      setError('Envoyez un fichier ou renseignez un lien externe.');
+      return;
+    }
+
     setSaving(true);
     setError(null);
 
@@ -114,7 +124,9 @@ export function DocumentsPage() {
       module: form.module,
       type_document: form.type_document,
       nom_fichier: form.nom_fichier,
-      url: form.url,
+      url: form.source.url,
+      storage_path: form.source.storage_path,
+      taille: form.source.taille,
       description: form.description || null,
       folder: form.folder || 'Général',
     };
@@ -123,12 +135,49 @@ export function DocumentsPage() {
       const { error } = await supabase.from('documents').insert(payload);
       if (error) throw new Error(error.message);
       setModalOpen(false);
-      setForm(emptyForm);
+      setForm({ ...emptyForm, source: emptyDocumentSource() });
       fetchDocuments();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSourceChange = (source: DocumentSource) => {
+    // Le nom du fichier envoyé sert de libellé par défaut, sans écraser une
+    // saisie manuelle de l'utilisateur.
+    setForm((prev) => ({
+      ...prev,
+      source,
+      nom_fichier: prev.nom_fichier || source.nom_fichier,
+    }));
+  };
+
+  const handleOpenDocument = async (doc: DocumentItem) => {
+    try {
+      await openDocument(doc);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Impossible d\'ouvrir le document');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!detailDoc) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await deleteDocument(detailDoc);
+      setShowDeleteConfirm(false);
+      setDetailDoc(null);
+      fetchDocuments();
+    } catch (err) {
+      // L'erreur reste affichée dans la fiche: la confirmation se ferme pour
+      // la rendre visible.
+      setShowDeleteConfirm(false);
+      setError(err instanceof Error ? err.message : 'Erreur lors de la suppression');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -205,7 +254,7 @@ export function DocumentsPage() {
                 {filtered.map((d) => (
                   <tr
                     key={d.id}
-                    onClick={() => setDetailDoc(d)}
+                    onClick={() => { setError(null); setDetailDoc(d); }}
                     className="cursor-pointer table-row-hover"
                   >
                     <td className="px-4 py-3">
@@ -302,14 +351,11 @@ export function DocumentsPage() {
               />
             </div>
             <div className="sm:col-span-2">
-              <label className="label">URL du document *</label>
-              <input
-                type="url"
-                value={form.url}
-                onChange={(e) => setForm({ ...form, url: e.target.value })}
-                required
-                className="input"
-                placeholder="https://..."
+              <label className="label">Fichier *</label>
+              <DocumentUpload
+                value={form.source}
+                onChange={handleSourceChange}
+                pathPrefix={form.animal_id || undefined}
               />
             </div>
             <div className="sm:col-span-2">
@@ -353,7 +399,10 @@ export function DocumentsPage() {
                 </div>
                 <div>
                   <h3 className="font-heading text-lg font-semibold text-neutral-900">{detailDoc.nom_fichier}</h3>
-                  <p className="text-xs text-neutral-500">Ajouté le {formatDate(detailDoc.created_at)}</p>
+                  <p className="text-xs text-neutral-500">
+                    Ajouté le {formatDate(detailDoc.created_at)}
+                    {detailDoc.taille ? ` • ${formatFileSize(detailDoc.taille)}` : ''}
+                  </p>
                 </div>
               </div>
               <Badge className={typeColors[detailDoc.type_document]}>
@@ -386,18 +435,56 @@ export function DocumentsPage() {
               </div>
             )}
 
-            <a
-              href={detailDoc.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-primary w-full justify-center"
-            >
-              <ExternalLink size={18} />
-              Ouvrir le document
-            </a>
+            {error && (
+              <div className="rounded-lg bg-error-50 px-4 py-3 text-sm text-error-700">{error}</div>
+            )}
+
+            <div className="flex gap-3">
+              {/* Bucket privé: l'URL de lecture est signée à la demande, elle ne
+                  peut pas être rendue dans un href statique. */}
+              <button
+                type="button"
+                onClick={() => handleOpenDocument(detailDoc)}
+                className="btn-primary flex-1 justify-center"
+              >
+                <ExternalLink size={18} />
+                Ouvrir le document
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="btn-ghost text-error-600 hover:bg-error-50"
+              >
+                <Trash2 size={18} />
+                Supprimer
+              </button>
+            </div>
           </div>
         )}
       </Modal>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && detailDoc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="card mx-4 max-w-md p-6">
+            <h3 className="font-heading text-lg font-semibold text-neutral-900">Confirmer la suppression</h3>
+            <p className="mt-2 text-sm text-neutral-600">
+              Voulez-vous vraiment supprimer <strong>{detailDoc.nom_fichier}</strong> ?
+              {detailDoc.storage_path
+                ? ' Le fichier sera définitivement effacé du stockage.'
+                : ' Le lien externe sera retiré du CRM (le fichier d\'origine n\'est pas touché).'}
+            </p>
+            <div className="mt-4 flex justify-end gap-3">
+              <button onClick={() => setShowDeleteConfirm(false)} className="btn-secondary" disabled={deleting}>
+                Annuler
+              </button>
+              <button onClick={handleDelete} className="btn-primary bg-error-600 hover:bg-error-700" disabled={deleting}>
+                {deleting ? 'Suppression...' : 'Supprimer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
