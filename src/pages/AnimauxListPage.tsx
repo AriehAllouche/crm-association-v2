@@ -29,6 +29,7 @@ export function AnimauxListPage() {
   const [animaux, setAnimaux] = useState<Animal[]>([]);
   const [search, setSearch] = useState('');
   const [statutFilter, setStatutFilter] = useState<AnimalStatut | 'all'>('all');
+  const [quickFilter, setQuickFilter] = useState<string>('all');
 
   useEffect(() => {
     fetchAnimaux();
@@ -56,7 +57,17 @@ export function AnimauxListPage() {
       a.numero_icad?.toLowerCase().includes(search.toLowerCase()) ||
       a.race?.toLowerCase().includes(search.toLowerCase());
     const matchStatut = statutFilter === 'all' || a.statut === statutFilter;
-    return matchSearch && matchStatut;
+    
+    let matchQuick = true;
+    if (quickFilter === 'adopte') matchQuick = a.adopte === true;
+    else if (quickFilter === 'en_pension') matchQuick = a.en_pension === true;
+    else if (quickFilter === 'icad_done') matchQuick = a.icad_done === true;
+    else if (quickFilter === 'requisition') matchQuick = a.requisition === true;
+    else if (quickFilter === 'vole') matchQuick = a.vole === true;
+    else if (quickFilter === 'perdu') matchQuick = a.perdu === true;
+    else if (quickFilter === 'reserve') matchQuick = a.reserve === true;
+    
+    return matchSearch && matchStatut && matchQuick;
   });
 
   if (loading) return <LoadingSpinner />;
@@ -101,6 +112,90 @@ export function AnimauxListPage() {
             ))}
           </select>
         </div>
+      </div>
+
+      {/* Quick filters */}
+      <div className="mb-4 flex flex-wrap gap-2">
+        <button
+          onClick={() => setQuickFilter('all')}
+          className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+            quickFilter === 'all'
+              ? 'bg-primary-600 text-white'
+              : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+          }`}
+        >
+          Tous
+        </button>
+        <button
+          onClick={() => setQuickFilter('adopte')}
+          className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+            quickFilter === 'adopte'
+              ? 'bg-success-600 text-white'
+              : 'bg-success-50 text-success-700 hover:bg-success-100'
+          }`}
+        >
+          Adoptés
+        </button>
+        <button
+          onClick={() => setQuickFilter('en_pension')}
+          className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+            quickFilter === 'en_pension'
+              ? 'bg-warning-600 text-white'
+              : 'bg-warning-50 text-warning-700 hover:bg-warning-100'
+          }`}
+        >
+          En pension
+        </button>
+        <button
+          onClick={() => setQuickFilter('icad_done')}
+          className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+            quickFilter === 'icad_done'
+              ? 'bg-info-600 text-white'
+              : 'bg-info-50 text-info-700 hover:bg-info-100'
+          }`}
+        >
+          ICAD fait
+        </button>
+        <button
+          onClick={() => setQuickFilter('requisition')}
+          className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+            quickFilter === 'requisition'
+              ? 'bg-error-600 text-white'
+              : 'bg-error-50 text-error-700 hover:bg-error-100'
+          }`}
+        >
+          Réquisition
+        </button>
+        <button
+          onClick={() => setQuickFilter('vole')}
+          className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+            quickFilter === 'vole'
+              ? 'bg-error-600 text-white'
+              : 'bg-error-50 text-error-700 hover:bg-error-100'
+          }`}
+        >
+          Volés
+        </button>
+        <button
+          onClick={() => setQuickFilter('perdu')}
+          className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+            quickFilter === 'perdu'
+              ? 'bg-warning-600 text-white'
+              : 'bg-warning-50 text-warning-700 hover:bg-warning-100'
+          }`}
+        >
+          Perdus
+        </button>
+        <button
+          onClick={() => setQuickFilter('reserve')}
+          className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+            quickFilter === 'reserve'
+              ? 'bg-info-600 text-white'
+              : 'bg-info-50 text-info-700 hover:bg-info-100'
+          }`}
+        >
+          Réservés
+        </button>
       </div>
 
       {/* Grid */}

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Loader2, Plus, Edit, CheckCircle } from 'lucide-react';
+import { Loader2, Plus, Edit, CheckCircle, Upload, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { fetchFamillesForSelect, fetchVetsForSelect, fetchPensionsForSelect, type FamilleAccueilAnimal, type FamilleAccueilAnimalStatut } from '../lib/animalDetails';
+import { syncAnimal, syncFamilleAccueilCount, syncPensionCount } from '../lib/animalSync';
 import { Modal, Badge } from './ui';
 import { formatDate } from '../lib/constants';
 
@@ -63,6 +64,12 @@ export function InlineVetVisitForm({ animalId, onSaved }: InlineFormProps) {
         notes: form.notes || null,
       });
       if (error) throw new Error(error.message);
+      
+      // Synchroniser le statut de l'animal (visite vétérinaire peut changer le statut)
+      if (animalId) {
+        await syncAnimal(animalId);
+      }
+      
       setOpen(false);
       setForm({ veterinaire_id: '', date_visite: new Date().toISOString().split('T')[0], motif: '', diagnostic: '', traitement: '', cout: '', prochaine_visite: '', notes: '' });
       onSaved();
@@ -147,14 +154,23 @@ export function InlineFamilleAccueilForm({ animalId, onSaved }: InlineFormProps)
     setSaving(true);
     setError(null);
     try {
-      const { error } = await supabase.from('famille_accueil_animaux').insert({
+      const { data: placementData, error } = await supabase.from('famille_accueil_animaux').insert({
         animal_id: animalId,
         famille_accueil_id: form.famille_accueil_id,
         statut: form.statut,
         date_debut: form.statut !== 'prevu' ? (form.date_debut || new Date().toISOString().split('T')[0]) : (form.date_debut || null),
         notes: form.notes || null,
-      });
+      }).select('famille_accueil_id').single();
       if (error) throw new Error(error.message);
+      
+      // Synchroniser le statut de l'animal et le compteur de la FA
+      if (animalId) {
+        await syncAnimal(animalId);
+      }
+      if (placementData?.famille_accueil_id) {
+        await syncFamilleAccueilCount(placementData.famille_accueil_id);
+      }
+      
       setOpen(false);
       setForm({ famille_accueil_id: '', statut: 'prevu', date_debut: '', notes: '' });
       onSaved();
@@ -252,6 +268,15 @@ export function InlineEditPlacementForm({ animalId, placement, onSaved }: Inline
         .eq('id', placement.id);
 
       if (error) throw new Error(error.message);
+      
+      // Synchroniser le statut de l'animal et le compteur de la FA
+      if (animalId) {
+        await syncAnimal(animalId);
+      }
+      if (placement.famille_accueil_id) {
+        await syncFamilleAccueilCount(placement.famille_accueil_id);
+      }
+      
       setOpen(false);
       onSaved();
     } catch (err) {
@@ -514,13 +539,22 @@ export function InlinePensionForm({ animalId, onSaved }: InlineFormProps) {
     setSaving(true);
     setError(null);
     try {
-      const { error } = await supabase.from('pension_sejours').insert({
+      const { data: sejourData, error } = await supabase.from('pension_sejours').insert({
         animal_id: animalId,
         pension_id: form.pension_id || null,
         date_entree: form.date_entree,
         notes: form.notes || null,
-      });
+      }).select('pension_id').single();
       if (error) throw new Error(error.message);
+      
+      // Synchroniser le statut de l'animal et le compteur de la pension
+      if (animalId) {
+        await syncAnimal(animalId);
+      }
+      if (sejourData?.pension_id) {
+        await syncPensionCount(sejourData.pension_id);
+      }
+      
       setOpen(false);
       onSaved();
     } catch (err) {

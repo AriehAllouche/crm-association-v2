@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, FileText, Search, Filter, Loader2, ExternalLink, FileCheck } from 'lucide-react';
+import { Plus, FileText, Search, Filter, Loader2, ExternalLink, FileCheck, Folder } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { PageHeader, LoadingSpinner, EmptyState, Badge, Modal } from '../components/ui';
+import { DocumentFolderForm } from '../components/DocumentFolderForm';
 import { formatDate } from '../lib/constants';
 import type { DocumentItem, DocumentModule, DocumentType, Animal } from '../types';
 
@@ -52,6 +53,7 @@ const emptyForm = {
   nom_fichier: '',
   url: '',
   description: '',
+  folder: 'Général',
 };
 
 export function DocumentsPage() {
@@ -114,6 +116,7 @@ export function DocumentsPage() {
       nom_fichier: form.nom_fichier,
       url: form.url,
       description: form.description || null,
+      folder: form.folder || 'Général',
     };
 
     try {
@@ -192,6 +195,7 @@ export function DocumentsPage() {
                 <tr className="border-b border-neutral-200 bg-neutral-50 text-left text-xs font-medium uppercase tracking-wider text-neutral-500">
                   <th className="px-4 py-3">Fichier</th>
                   <th className="px-4 py-3">Type</th>
+                  <th className="px-4 py-3">Dossier</th>
                   <th className="px-4 py-3">Module</th>
                   <th className="px-4 py-3">Animal</th>
                   <th className="px-4 py-3">Date</th>
@@ -212,6 +216,12 @@ export function DocumentsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <Badge className={typeColors[d.type_document]}>{typeLabels[d.type_document]}</Badge>
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      <div className="flex items-center gap-1.5 text-neutral-600">
+                        <Folder size={14} className="text-neutral-400" />
+                        <span>{d.folder || 'Général'}</span>
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-neutral-600">{moduleLabels[d.module]}</td>
                     <td className="px-4 py-3 text-sm">
@@ -310,6 +320,13 @@ export function DocumentsPage() {
                 rows={3}
                 className="input"
                 placeholder="Description du document..."
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <DocumentFolderForm
+                animalId={form.animal_id}
+                onFolderSelected={(folder) => setForm({ ...form, folder })}
+                selectedFolder={form.folder}
               />
             </div>
           </div>
