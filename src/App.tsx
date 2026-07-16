@@ -14,6 +14,8 @@ import { ComingSoonPage } from './pages/ComingSoonPage';
 import { SearchPage } from './pages/SearchPage';
 import { GoogleDriveTest } from './components/GoogleDriveTest';
 import { LoadingSpinner } from './components/ui';
+import { MembresPage } from './pages/MembresPage';
+import { AdminValidationPage } from './pages/AdminValidationPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
@@ -21,6 +23,44 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (loading) return <LoadingSpinner size={32} />;
 
   if (!session) return <Navigate to="/login" replace />;
+
+  return <Layout>{children}</Layout>;
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { session, profile, loading } = useAuth();
+
+  if (loading) return <LoadingSpinner size={32} />;
+
+  if (!session) return <Navigate to="/login" replace />;
+
+  if (profile?.role !== 'admin') return <Navigate to="/" replace />;
+
+  return <Layout>{children}</Layout>;
+}
+
+function PermissionRoute({ 
+  children, 
+  requiredPermission 
+}: { 
+  children: React.ReactNode; 
+  requiredPermission?: string;
+}) {
+  const { session, profile, loading } = useAuth();
+
+  if (loading) return <LoadingSpinner size={32} />;
+
+  if (!session) return <Navigate to="/login" replace />;
+
+  if (!profile || profile.status !== 'active') {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Vérifier les permissions RBAC
+  if (requiredPermission && profile.permissions) {
+    const hasPermission = profile.permissions.some(p => p.name === requiredPermission);
+    if (!hasPermission) return <Navigate to="/" replace />;
+  }
 
   return <Layout>{children}</Layout>;
 }
@@ -188,6 +228,22 @@ function AppRoutes() {
           <ProtectedRoute>
             <ComingSoonPage featureName="Import Excel" />
           </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/membres"
+        element={
+          <AdminRoute>
+            <MembresPage />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/validation"
+        element={
+          <PermissionRoute requiredPermission="admin.approve">
+            <AdminValidationPage />
+          </PermissionRoute>
         }
       />
       <Route path="*" element={<Navigate to="/" replace />} />

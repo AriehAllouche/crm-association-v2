@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Search, Dog, Siren, Home, HeartHandshake, Stethoscope, Scale, Building2, Users, FileText, X } from 'lucide-react';
+import { Search, Dog, Siren, Home, HeartHandshake, Stethoscope, Scale, Building2, Users, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { LoadingSpinner, Badge } from '../components/ui';
-import { formatDate } from '../lib/constants';
-import type { Animal, Signalement, FamilleAccueil, Adoption, Veterinaire, JusticeCase, Pension, Enqueteur } from '../types';
 
 interface SearchResult {
   type: string;

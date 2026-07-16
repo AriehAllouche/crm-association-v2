@@ -1,31 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Loader2, Plus, Edit, CheckCircle, Upload, X } from 'lucide-react';
+import { Loader2, Plus, Edit } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { fetchFamillesForSelect, fetchVetsForSelect, fetchPensionsForSelect, type FamilleAccueilAnimal, type FamilleAccueilAnimalStatut } from '../lib/animalDetails';
 import { syncAnimal, syncFamilleAccueilCount, syncPensionCount } from '../lib/animalSync';
-import { Modal, Badge } from './ui';
-import { formatDate } from '../lib/constants';
+import { Modal } from './ui';
 
 interface InlineFormProps {
   animalId?: string;
   onSaved: () => void;
 }
-
-interface EditPlacementProps extends InlineFormProps {
-  placement: FamilleAccueilAnimal;
-}
-
-const faStatutLabels: Record<FamilleAccueilAnimalStatut, string> = {
-  prevu: 'Prévu',
-  en_cours: 'En cours',
-  termine: 'Terminé',
-};
-
-const faStatutColors: Record<FamilleAccueilAnimalStatut, string> = {
-  prevu: 'bg-warning-100 text-warning-800',
-  en_cours: 'bg-success-100 text-success-700',
-  termine: 'bg-neutral-100 text-neutral-600',
-};
 
 export function InlineVetVisitForm({ animalId, onSaved }: InlineFormProps) {
   const [open, setOpen] = useState(false);

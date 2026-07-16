@@ -19,7 +19,7 @@ export async function syncAnimalStatut(animalId: string): Promise<void> {
         .from('pension_sejours')
         .select('*')
         .eq('animal_id', animalId)
-        .isnull('date_sortie')
+        .is('date_sortie', null)
         .maybeSingle(),
       supabase
         .from('animals')
@@ -77,7 +77,7 @@ export async function syncAnimalLieu(animalId: string): Promise<void> {
         .from('pension_sejours')
         .select('*, pension:pensions(nom, ville)')
         .eq('animal_id', animalId)
-        .isnull('date_sortie')
+        .is('date_sortie', null)
         .maybeSingle(),
     ]);
 
@@ -147,7 +147,7 @@ export async function syncPensionCount(pensionId: string): Promise<void> {
       .from('pension_sejours')
       .select('id')
       .eq('pension_id', pensionId)
-      .isnull('date_sortie');
+      .is('date_sortie', null);
 
     if (error) throw error;
 

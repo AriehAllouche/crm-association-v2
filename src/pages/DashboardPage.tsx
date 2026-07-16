@@ -1,47 +1,23 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import {
-  Dog,
-  Siren,
-  HeartHandshake,
-  Stethoscope,
-  AlertTriangle,
-  Euro,
-  Activity,
-  Home,
-  Building2,
-  Users,
-  Scale,
-} from 'lucide-react';
+import { Dog } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { PageHeader, StatCard, LoadingSpinner, Badge } from '../components/ui';
-import {
-  animalStatutLabels,
-  animalStatutColors,
-  alertPrioriteColors,
-  alertPrioriteLabels,
-  daysUntil,
-  formatCurrency,
-} from '../lib/constants';
+import { LoadingSpinner, Badge } from '../components/ui';
 import { generateAllAlerts } from '../lib/alerts';
-import type { Animal, Alert } from '../types';
+import { useAuth } from '../context/AuthContext';
+import { DashboardPresident } from '../components/dashboard/DashboardPresident';
+import { DashboardVeterinary } from '../components/dashboard/DashboardVeterinary';
+import { DashboardFAManager } from '../components/dashboard/DashboardFAManager';
+import type { Animal, Alert, FamilleAccueil, Signalement, VeterinaireVisite } from '../types';
 
 export function DashboardPage() {
+  const { profile } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    totalAnimaux: 0,
-    aAdopter: 0,
-    enFamilleAccueil: 0,
-    enPension: 0,
-    enSoins: 0,
-    signalementsOuverts: 0,
-    adoptionsEnCours: 0,
-    famillesActives: 0,
-    pensionsActives: 0,
-    dossiersJustice: 0,
-    coutTotal: 0,
-  });
-  const [recentAnimaux, setRecentAnimaux] = useState<Animal[]>([]);
+
+  // Données de l'application
+  const [animals, setAnimals] = useState<Animal[]>([]);
+  const [signalements, setSignalements] = useState<Signalement[]>([]);
+  const [familles, setFamilles] = useState<FamilleAccueil[]>([]);
+  const [visites, setVisites] = useState<VeterinaireVisite[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
 
   useEffect(() => {
@@ -50,165 +26,126 @@ export function DashboardPage() {
 
   const fetchDashboardData = async () => {
     setLoading(true);
+    try {
+      // Auto-générer les alertes
+      await generateAllAlerts();
 
-    // Générer automatiquement les alertes
-    await generateAllAlerts();
+      // Requêtes parallèles pour les données nécessaires
+      const [
+        animalsRes,
+        signalementsRes,
+        famillesRes,
+        visitesRes,
+        alertsRes
+      ] = await Promise.all([
+        supabase.from('animals').select('*').order('created_at', { ascending: false }),
+        supabase.from('signalements').select('*, animal:animals(*)').order('created_at', { ascending: false }),
+        supabase.from('famille_accueils').select('*').order('nom'),
+        supabase.from('veterinaire_visites').select('*, animal:animals(*), veterinaire:veterinaires(*)').order('date_visite', { ascending: false }),
+        supabase.from('alerts').select('*, animal:animals(*)').eq('statut', 'active').order('date_echeance')
+      ]);
 
-    const [animauxRes, signalementsRes, adoptionsRes, depensesRes, alertsRes, famillesRes, pensionsRes, justiceRes] = await Promise.all([
-      supabase.from('animals').select('*').order('created_at', { ascending: false }).limit(5),
-      supabase.from('signalements').select('*', { count: 'exact' }).in('statut', ['nouveau', 'en_cours']),
-      supabase.from('adoptions').select('*', { count: 'exact' }).not('statut', 'in', '("adoptee","refusee")'),
-      supabase.from('depenses').select('montant'),
-      supabase.from('alerts').select('*, animal:animals(*)').eq('statut', 'active').order('date_echeance').limit(10),
-      supabase.from('famille_accueils').select('*', { count: 'exact' }).eq('contrat_actif', true),
-      supabase.from('pensions').select('*', { count: 'exact' }),
-      supabase.from('justice_cases').select('*', { count: 'exact' }).in('statut', ['nouveau', 'en_cours', 'en_attente']),
-    ]);
+      setAnimals((animalsRes.data ?? []) as Animal[]);
+      setSignalements((signalementsRes.data ?? []) as Signalement[]);
+      setFamilles((famillesRes.data ?? []) as FamilleAccueil[]);
+      setVisites((visitesRes.data ?? []) as VeterinaireVisite[]);
+      setAlerts((alertsRes.data ?? []) as Alert[]);
 
-    const animaux = (animauxRes.data ?? []) as Animal[];
-    setRecentAnimaux(animaux);
+    } catch (err) {
+      console.error('Erreur lors du chargement des données du dashboard:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    setStats({
-      totalAnimaux: animaux.length,
-      aAdopter: animaux.filter((a) => a.statut === 'a_adopter').length,
-      enFamilleAccueil: animaux.filter((a) => a.statut === 'en_famille_accueil').length,
-      enPension: animaux.filter((a) => a.statut === 'en_pension').length,
-      enSoins: animaux.filter((a) => a.statut === 'en_soins').length,
-      signalementsOuverts: signalementsRes.count ?? 0,
-      adoptionsEnCours: adoptionsRes.count ?? 0,
-      famillesActives: famillesRes.count ?? 0,
-      pensionsActives: pensionsRes.count ?? 0,
-      dossiersJustice: justiceRes.count ?? 0,
-      coutTotal: (depensesRes.data ?? []).reduce((sum, d) => sum + (d.montant ?? 0), 0),
-    });
-
-    setAlerts((alertsRes.data ?? []) as Alert[]);
-
-    setLoading(false);
+  // Déterminer le rôle principal de l'utilisateur
+  const userPrimaryRole = profile?.roles?.[0]?.name || 'president';
+  
+  // Afficher le dashboard personnalisé selon le rôle
+  const renderDashboardByRole = () => {
+    switch (userPrimaryRole) {
+      case 'president':
+      case 'administrator':
+        return (
+          <DashboardPresident
+            animals={animals}
+            familles={familles}
+            signalements={signalements}
+            alerts={alerts}
+          />
+        );
+      case 'veterinary_manager':
+        return (
+          <DashboardVeterinary
+            animals={animals}
+            visites={visites}
+            alerts={alerts}
+          />
+        );
+      case 'fa_manager':
+        return (
+          <DashboardFAManager
+            animals={animals}
+            familles={familles}
+          />
+        );
+      default:
+        // Pour les autres rôles, afficher le dashboard générique
+        return null;
+    }
   };
 
   if (loading) return <LoadingSpinner />;
 
-  return (
-    <div>
-      <PageHeader
-        title="Tableau de bord"
-        subtitle="Vue d'ensemble de l'activité de l'association"
-      />
+  // Afficher le dashboard personnalisé selon le rôle
+  const dashboardComponent = renderDashboardByRole();
+  
+  if (dashboardComponent) {
+    return dashboardComponent;
+  }
 
-      {/* Stats grid */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-        <StatCard label="Animaux suivis" value={stats.totalAnimaux} icon={Dog} color="primary" />
-        <StatCard label="À adopter" value={stats.aAdopter} icon={HeartHandshake} color="success" />
-        <StatCard label="En FA" value={stats.enFamilleAccueil} icon={Home} color="secondary" />
-        <StatCard label="En pension" value={stats.enPension} icon={Building2} color="accent" />
-        <StatCard label="En soins" value={stats.enSoins} icon={Stethoscope} color="error" />
-        <StatCard label="Signalements" value={stats.signalementsOuverts} icon={Siren} color="warning" />
-        <StatCard label="Adoptions" value={stats.adoptionsEnCours} icon={HeartHandshake} color="success" />
-        <StatCard label="Familles actives" value={stats.famillesActives} icon={Home} color="primary" />
-        <StatCard label="Justice" value={stats.dossiersJustice} icon={Scale} color="secondary" />
-        <StatCard label="Alertes" value={alerts.length} icon={AlertTriangle} color="warning" />
+  // Dashboard générique pour les rôles non implémentés
+  return (
+    <div className="space-y-6">
+      {/* Bandeau d'accueil */}
+      <div className="rounded-3xl bg-gradient-to-r from-primary-600 to-secondary-600 p-6 text-white shadow-lg relative overflow-hidden">
+        <div className="absolute right-0 bottom-0 opacity-15">
+          <Dog size={180} className="translate-x-10 translate-y-10" />
+        </div>
+        <div className="relative z-10 space-y-4">
+          <div>
+            <h1 className="font-heading text-2xl font-bold md:text-3xl">
+              👋 Bonjour, {profile?.full_name || 'Bénévole'}
+            </h1>
+            <p className="text-xs font-medium text-primary-100 uppercase tracking-wider mt-1">
+              {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-4 pt-2 md:grid-cols-4">
+            <div className="rounded-2xl bg-white/10 p-3 backdrop-blur-sm">
+              <span className="text-xs font-medium text-primary-100 block">Animaux pris en charge</span>
+              <span className="font-heading text-xl font-bold mt-0.5 block flex items-center gap-1.5">
+                <Badge className="bg-success-500 text-white font-bold text-xs">{animals.length}</Badge> protégés
+              </span>
+            </div>
+            <div className="rounded-2xl bg-white/10 p-3 backdrop-blur-sm">
+              <span className="text-xs font-medium text-primary-100 block">Votre rôle</span>
+              <span className="font-heading text-xl font-bold mt-0.5 block flex items-center gap-1.5">
+                <Badge className="bg-info-500 text-white font-bold text-xs">{userPrimaryRole}</Badge>
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Recent animals */}
-        <div className="lg:col-span-2">
-          <div className="card">
-            <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
-              <h2 className="font-heading text-lg font-semibold text-neutral-900">
-                Animaux récents
-              </h2>
-              <Link to="/animaux" className="text-sm font-medium text-primary-600 hover:text-primary-700">
-                Voir tout →
-              </Link>
-            </div>
-            <div className="divide-y divide-neutral-100">
-              {recentAnimaux.length === 0 ? (
-                <p className="px-5 py-8 text-center text-sm text-neutral-500">
-                  Aucun animal enregistré pour le moment.
-                </p>
-              ) : (
-                recentAnimaux.map((animal) => (
-                  <Link
-                    key={animal.id}
-                    to={`/animaux/${animal.id}`}
-                    className="flex items-center justify-between px-5 py-3 transition-colors hover:bg-neutral-50"
-                  >
-                    <div className="flex items-center gap-3">
-                      {animal.photo_url ? (
-                        <img src={animal.photo_url} alt={animal.nom} className="h-10 w-10 rounded-full object-cover" />
-                      ) : (
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-100 text-primary-600">
-                          <Dog size={20} />
-                        </div>
-                      )}
-                      <div>
-                        <p className="font-medium text-neutral-900">{animal.nom}</p>
-                        <p className="text-xs text-neutral-500">
-                          {animal.espece} {animal.race ? `· ${animal.race}` : ''}
-                        </p>
-                      </div>
-                    </div>
-                    <Badge className={animalStatutColors[animal.statut]}>
-                      {animalStatutLabels[animal.statut]}
-                    </Badge>
-                  </Link>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Alerts */}
-        <div>
-          <div className="card">
-            <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
-              <h2 className="font-heading text-lg font-semibold text-neutral-900">
-                Alertes & rappels
-              </h2>
-              <Badge className="bg-warning-100 text-warning-800">{alerts.length}</Badge>
-            </div>
-            <div className="max-h-96 divide-y divide-neutral-100 overflow-y-auto">
-              {alerts.length === 0 ? (
-                <p className="px-5 py-8 text-center text-sm text-neutral-500">
-                  Aucune alerte active.
-                </p>
-              ) : (
-                alerts.map((alert) => {
-                  const days = daysUntil(alert.date_echeance);
-                  return (
-                    <div key={alert.id} className="px-5 py-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-neutral-900">{alert.titre}</p>
-                          {alert.message && (
-                            <p className="mt-0.5 text-xs text-neutral-500">{alert.message}</p>
-                          )}
-                          <div className="mt-1.5 flex items-center gap-2">
-                            <Badge className={alertPrioriteColors[alert.priorite]}>
-                              {alertPrioriteLabels[alert.priorite]}
-                            </Badge>
-                            <span className="text-xs text-neutral-400">
-                              {days >= 0 ? `Dans ${days}j` : `Il y a ${Math.abs(days)}j`}
-                            </span>
-                          </div>
-                        </div>
-                        {alert.animal && (
-                          <Link
-                            to={`/animaux/${alert.animal.id}`}
-                            className="shrink-0 text-xs font-medium text-primary-600 hover:underline"
-                          >
-                            {alert.animal.nom}
-                          </Link>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        </div>
+      {/* Message pour les rôles non implémentés */}
+      <div className="card p-6 text-center">
+        <p className="text-neutral-600">
+          Dashboard personnalisé pour le rôle <strong>{userPrimaryRole}</strong> en cours de développement.
+        </p>
+        <p className="text-sm text-neutral-500 mt-2">
+          En attendant, vous avez accès aux fonctionnalités générales de l'application.
+        </p>
       </div>
     </div>
   );

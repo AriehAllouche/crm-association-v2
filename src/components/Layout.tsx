@@ -32,6 +32,7 @@ const navItems = [
   { to: '/familles-accueil', label: 'Familles d\'accueil', icon: Home },
   { to: '/adoptions', label: 'Adoptions', icon: HeartHandshake },
   { to: '/veterinaires', label: 'Vétérinaires', icon: Stethoscope },
+  { to: '/admin/membres', label: 'Membres & Rôles', icon: Users, adminOnly: true },
   { to: '/test-google-drive', label: 'Test Google Drive', icon: TestTube, test: true },
   { to: '/justice', label: 'Justice', icon: Scale, v2: true },
   { to: '/pensions', label: 'Pensions / Fourrières', icon: Building2, v2: true },
@@ -61,7 +62,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
         <nav className="flex-1 overflow-y-auto px-3 py-4">
           <ul className="space-y-1">
-            {navItems.map((item) => (
+            {navItems
+              .filter((item) => !item.adminOnly || profile?.role === 'admin')
+              .map((item) => (
               <li key={item.to}>
                 <NavLink
                   to={item.to}
@@ -131,7 +134,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </div>
             <nav className="overflow-y-auto px-3 py-4" style={{ maxHeight: 'calc(100% - 4rem)' }}>
               <ul className="space-y-1">
-                {navItems.map((item) => (
+                {navItems
+                  .filter((item) => !item.adminOnly || profile?.role === 'admin')
+                  .map((item) => (
                   <li key={item.to}>
                     <NavLink
                       to={item.to}

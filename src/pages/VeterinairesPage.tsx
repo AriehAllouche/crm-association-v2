@@ -76,7 +76,7 @@ export function VeterinairesPage() {
         .order('date_visite', { ascending: false });
 
       if (error) throw error;
-      setDetailVisites((data ?? []) as VetVisitWithAnimal[]);
+      setDetailVisites((data ?? []) as unknown as VetVisitWithAnimal[]);
     } catch (err) {
       console.error('Error fetching visites:', err);
       setDetailVisites([]);

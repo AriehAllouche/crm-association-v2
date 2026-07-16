@@ -11,6 +11,7 @@ export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [motivation, setMotivation] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -33,7 +34,7 @@ export function LoginPage() {
         setLoading(false);
         return;
       }
-      const { error } = await signUp(email, password, fullName);
+      const { error } = await signUp(email, password, fullName, motivation);
       if (error) {
         setError(error);
         setLoading(false);
@@ -75,20 +76,33 @@ export function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === 'register' && (
-              <div>
-                <label className="label">Nom complet</label>
-                <div className="relative">
-                  <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-                  <input
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
+              <>
+                <div>
+                  <label className="label">Nom complet</label>
+                  <div className="relative">
+                    <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+                    <input
+                      type="text"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      required
+                      placeholder="Jean Dupont"
+                      className="input pl-10"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="label">Motivation</label>
+                  <textarea
+                    value={motivation}
+                    onChange={(e) => setMotivation(e.target.value)}
                     required
-                    placeholder="Jean Dupont"
-                    className="input pl-10"
+                    placeholder="Pourquoi souhaitez-vous rejoindre l'association ?"
+                    className="input min-h-[80px] resize-y"
+                    rows={3}
                   />
                 </div>
-              </div>
+              </>
             )}
 
             <div>

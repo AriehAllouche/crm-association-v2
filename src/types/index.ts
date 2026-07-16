@@ -1,15 +1,72 @@
+// Legacy roles (pour compatibilité)
 export type UserRole = 'admin' | 'benevole' | 'enqueteur' | 'referent_fa';
+
+// Nouveaux rôles RBAC
+export type RBACRole =
+  | 'president'
+  | 'administrator'
+  | 'fa_manager'
+  | 'veterinary_manager'
+  | 'communication_manager'
+  | 'investigator'
+  | 'educator'
+  | 'treasurer';
+
+export type UserStatus = 'pending' | 'active' | 'rejected' | 'suspended';
 
 export interface Profile {
   id: string;
   email: string;
   full_name: string;
-  role: UserRole;
+  role: UserRole; // Legacy field
   phone?: string;
   avatar_url?: string;
   active: boolean;
+  status: UserStatus; // Nouveau champ RBAC
+  last_login?: string; // Nouveau champ RBAC
+  motivation?: string; // Nouveau champ RBAC
   created_at: string;
   updated_at: string;
+}
+
+// Types RBAC
+export interface Role {
+  id: string;
+  name: RBACRole;
+  description: string;
+  is_system_role: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Permission {
+  id: string;
+  name: string;
+  description: string;
+  resource: string;
+  action: string;
+  created_at: string;
+}
+
+export interface UserRoleAssignment {
+  id: string;
+  user_id: string;
+  role_id: string;
+  assigned_at: string;
+  assigned_by?: string;
+  role?: Role;
+}
+
+export interface RolePermission {
+  id: string;
+  role_id: string;
+  permission_id: string;
+  permission?: Permission;
+}
+
+export interface UserWithRoles extends Profile {
+  roles?: Role[];
+  permissions?: Permission[];
 }
 
 export type AnimalEspece = 'chien' | 'chat' | 'lapin' | 'cheval' | 'autre';
@@ -469,3 +526,20 @@ export interface AuditLogEntry {
   description?: string;
   created_at: string;
 }
+
+export type TaskPriorite = 'faible' | 'normal' | 'urgent' | 'critique';
+export type TaskStatut = 'active' | 'terminee';
+
+export interface Task {
+  id: string;
+  titre: string;
+  description?: string;
+  date_echeance: string;
+  heure_echeance?: string;
+  priorite: TaskPriorite;
+  responsable_id?: string;
+  statut: TaskStatut;
+  created_at: string;
+  responsable?: Profile;
+}
+
