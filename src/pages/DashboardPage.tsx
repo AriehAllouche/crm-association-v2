@@ -20,8 +20,10 @@ import {
   formatCurrency,
 } from '../lib/constants';
 import type { Animal, Alert } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 export function DashboardPage() {
+  const { profile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalAnimaux: 0,
@@ -42,22 +44,23 @@ export function DashboardPage() {
   const fetchDashboardData = async () => {
     setLoading(true);
 
-    const [animauxRes, signalementsRes, adoptionsRes, depensesRes, alertsRes] = await Promise.all([
+    const [recentRes, statutsRes, signalementsRes, adoptionsRes, depensesRes, alertsRes] = await Promise.all([
       supabase.from('animals').select('*').order('created_at', { ascending: false }).limit(5),
+      supabase.from('animals').select('statut'),
       supabase.from('signalements').select('*', { count: 'exact' }).in('statut', ['nouveau', 'en_cours']),
       supabase.from('adoptions').select('*', { count: 'exact' }).not('statut', 'in', '("adoptee","refusee")'),
       supabase.from('depenses').select('montant'),
       supabase.from('alerts').select('*, animal:animals(*)').eq('statut', 'active').order('date_echeance').limit(10),
     ]);
 
-    const animaux = (animauxRes.data ?? []) as Animal[];
-    setRecentAnimaux(animaux);
+    setRecentAnimaux((recentRes.data ?? []) as Animal[]);
 
+    const statuts = (statutsRes.data ?? []) as { statut: string }[];
     setStats({
-      totalAnimaux: animaux.length,
-      aAdopter: animaux.filter((a) => a.statut === 'a_adopter').length,
-      enFamilleAccueil: animaux.filter((a) => a.statut === 'en_famille_accueil').length,
-      enSoins: animaux.filter((a) => a.statut === 'en_soins').length,
+      totalAnimaux: statuts.length,
+      aAdopter: statuts.filter((a) => a.statut === 'a_adopter').length,
+      enFamilleAccueil: statuts.filter((a) => a.statut === 'en_famille_accueil').length,
+      enSoins: statuts.filter((a) => a.statut === 'en_soins').length,
       signalementsOuverts: signalementsRes.count ?? 0,
       adoptionsEnCours: adoptionsRes.count ?? 0,
       coutTotal: (depensesRes.data ?? []).reduce((sum, d) => sum + (d.montant ?? 0), 0),
@@ -73,8 +76,8 @@ export function DashboardPage() {
   return (
     <div>
       <PageHeader
-        title="Tableau de bord"
-        subtitle="Vue d'ensemble de l'activité de l'association"
+        title={`Bonjour${profile?.full_name ? ` ${profile.full_name.split(' ')[0]}` : ''}`}
+        subtitle={`${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · Vue d'ensemble de l'activité de l'association`}
       />
 
       {/* Stats grid */}
