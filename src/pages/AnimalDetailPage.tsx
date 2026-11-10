@@ -15,6 +15,8 @@ import {
   InlineCreateRegistreForm, InlineEditPlacementForm,
 } from '../components/InlineForms';
 import { FamilleSuggestion } from '../components/FamilleSuggestion';
+import { AnimalSummaryBar } from '../components/AnimalSummaryBar';
+import { useAuth } from '../context/AuthContext';
 import type { FamilleAccueilAnimalStatut } from '../lib/animalDetails';
 import {
   animalStatutLabels, animalStatutColors, especeLabels, santeStatutLabels,
@@ -48,6 +50,7 @@ export function AnimalDetailPage() {
   const [activeTab, setActiveTab] = useState('timeline');
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const { hasPermission } = useAuth();
 
   const handleDelete = async () => {
     if (!id) return;
@@ -129,6 +132,8 @@ export function AnimalDetailPage() {
       <button onClick={() => navigate('/animaux')} className="mb-4 flex items-center gap-2 text-sm text-neutral-500 hover:text-neutral-700">
         <ArrowLeft size={16} /> Retour à la liste
       </button>
+
+      <AnimalSummaryBar data={data} canSeeFinances={hasPermission('finances')} />
 
       {/* Header */}
       <div className="card mb-6 overflow-hidden">
