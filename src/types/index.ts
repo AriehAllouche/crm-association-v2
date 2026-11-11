@@ -1,4 +1,13 @@
-export type UserRole = 'admin' | 'benevole' | 'enqueteur' | 'referent_fa';
+export type UserRole = 
+  | 'presidente'
+  | 'admin'
+  | 'enqueteur'
+  | 'referent_fa'
+  | 'veterinaire'
+  | 'educateur'
+  | 'communication'
+  | 'tresorier'
+  | 'benevole';
 
 export interface Profile {
   id: string;

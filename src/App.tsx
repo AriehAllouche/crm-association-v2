@@ -19,6 +19,7 @@ import { RegistrePage } from './pages/RegistrePage';
 import { ImportPage } from './pages/ImportPage';
 import { TachesPage } from './pages/TachesPage';
 import { PresidentePage } from './pages/PresidentePage';
+import { EnqueteursCartePage } from './pages/EnqueteursCartePage';
 import { VeterinairesPage } from './pages/VeterinairesPage';
 import { DocumentsPage } from './pages/DocumentsPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
@@ -198,6 +199,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <EnqueteursPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/enqueteurs-carte"
+        element={
+          <ProtectedRoute>
+            <EnqueteursCartePage />
           </ProtectedRoute>
         }
       />
