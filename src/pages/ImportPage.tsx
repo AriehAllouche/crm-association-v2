@@ -258,9 +258,82 @@ export function ImportPage() {
       errors: [],
     };
 
+    // Vérification des doublons
+    let rowsToImport = validRows;
+    
+    if (importType === 'animaux') {
+      // Récupérer les animaux existants pour vérifier les doublons
+      const { data: existingAnimals } = await supabase
+        .from('animals')
+        .select('nom, date_naissance, numero_icad');
+      
+      if (existingAnimals) {
+        rowsToImport = validRows.filter((row) => {
+          const isDuplicate = existingAnimals.some((existing) => {
+            // Vérifier par ICAD si disponible
+            if (row.data.numero_icad && existing.numero_icad === row.data.numero_icad) {
+              return true;
+            }
+            // Vérifier par nom + date de naissance
+            if (existing.nom === row.data.nom && existing.date_naissance === row.data.date_naissance) {
+              return true;
+            }
+            return false;
+          });
+          
+          if (isDuplicate) {
+            results.errors.push({
+              row: row.rowIndex,
+              message: 'Doublon détecté (animal existe déjà)',
+            });
+            return false;
+          }
+          return true;
+        });
+      }
+    } else {
+      // Récupérer les familles d'accueil existantes pour vérifier les doublons
+      const { data: existingFamilles } = await supabase
+        .from('famille_accueils')
+        .select('nom, prenom, telephone, email');
+      
+      if (existingFamilles) {
+        rowsToImport = validRows.filter((row) => {
+          const isDuplicate = existingFamilles.some((existing) => {
+            // Vérifier par email si disponible
+            if (row.data.email && existing.email === row.data.email) {
+              return true;
+            }
+            // Vérifier par nom + prénom + téléphone
+            if (existing.nom === row.data.nom && 
+                existing.prenom === row.data.prenom && 
+                existing.telephone === row.data.telephone) {
+              return true;
+            }
+            return false;
+          });
+          
+          if (isDuplicate) {
+            results.errors.push({
+              row: row.rowIndex,
+              message: 'Doublon détecté (famille d\'accueil existe déjà)',
+            });
+            return false;
+          }
+          return true;
+        });
+      }
+    }
+
+    if (rowsToImport.length === 0) {
+      setImportResult(results);
+      setLoading(false);
+      return;
+    }
+
     const batchSize = 50;
-    for (let i = 0; i < validRows.length; i += batchSize) {
-      const batch = validRows.slice(i, i + batchSize);
+    for (let i = 0; i < rowsToImport.length; i += batchSize) {
+      const batch = rowsToImport.slice(i, i + batchSize);
 
       if (importType === 'animaux') {
         const payload = batch.map((row) => ({
