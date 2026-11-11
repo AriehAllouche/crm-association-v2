@@ -18,10 +18,12 @@ import {
   X,
   ClipboardList,
   Upload,
+  CheckCircle,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Logo } from './Logo';
+import { NotificationBell } from './NotificationBell';
 import { roleLabels } from '../lib/constants';
 import { isV2 } from '../lib/features';
 
@@ -29,6 +31,7 @@ import { isV2 } from '../lib/features';
 // que d'être répété ici au risque de diverger.
 const navItems = [
   { to: '/', label: 'Tableau de bord', icon: LayoutDashboard, end: true },
+  { to: '/presidente', label: 'Vue Présidente', icon: Users },
   { to: '/animaux', label: 'Animaux', icon: Dog },
   { to: '/signalements', label: 'Signalements', icon: Siren },
   { to: '/familles-accueil', label: 'Familles d\'accueil', icon: Home },
@@ -41,6 +44,7 @@ const navItems = [
   { to: '/enqueteurs', label: 'Enquêteurs', icon: Users, module: 'enqueteurs' },
   { to: '/registre', label: 'Registre légal', icon: ClipboardList, module: 'registre' },
   { to: '/import', label: 'Import Excel', icon: Upload, module: 'import' },
+  { to: '/taches', label: 'Mes Tâches', icon: CheckCircle },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -191,10 +195,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button className="relative rounded-lg p-2 text-neutral-600 hover:bg-neutral-100">
-              <Bell size={20} />
-              <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-error-500" />
-            </button>
+            <NotificationBell />
           </div>
         </header>
 

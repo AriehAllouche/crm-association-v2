@@ -18,6 +18,7 @@ import { EnqueteursPage } from './pages/EnqueteursPage';
 import { RegistrePage } from './pages/RegistrePage';
 import { ImportPage } from './pages/ImportPage';
 import { TachesPage } from './pages/TachesPage';
+import { PresidentePage } from './pages/PresidentePage';
 import { VeterinairesPage } from './pages/VeterinairesPage';
 import { DocumentsPage } from './pages/DocumentsPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
@@ -221,6 +222,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <TachesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/presidente"
+        element={
+          <ProtectedRoute>
+            <PresidentePage />
           </ProtectedRoute>
         }
       />

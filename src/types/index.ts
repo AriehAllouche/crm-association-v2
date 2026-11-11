@@ -466,6 +466,20 @@ export interface Tache {
   updated_at: string;
 }
 
+export type NotificationType = 'info' | 'warning' | 'error' | 'success';
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  title: string;
+  message?: string;
+  link?: string;
+  read: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export type RegistreType = 'entree' | 'sortie';
 
 export interface RegistreEntreeSortie {
