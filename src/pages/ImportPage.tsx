@@ -78,6 +78,7 @@ const columnMapping: Record<string, string> = {
 };
 
 const familleAccueilColumnMapping: Record<string, string> = {
+  // Colonnes de base
   nom: 'nom',
   name: 'nom',
   prenom: 'prenom',
@@ -93,6 +94,7 @@ const familleAccueilColumnMapping: Record<string, string> = {
   city: 'ville',
   departement: 'departement',
   department: 'departement',
+  profession: 'profession',
   capacite_max: 'capacite_max',
   capacity: 'capacite_max',
   materiel_confie: 'materiel_confie',
@@ -102,6 +104,40 @@ const familleAccueilColumnMapping: Record<string, string> = {
   notes: 'notes',
   statut: 'statut',
   status: 'statut',
+  
+  // Colonnes de préférences
+  'quel animal pouvez-vous accueillir': 'especes_acceptees',
+  'pouvez-vous accueillir suivant l\'urgence 2 animaux': 'urgence_2_animaux',
+  'durée de l\'accueil': 'duree_accueil',
+  
+  // Colonnes de contexte familial
+  'combien d\'adultes vivent dans votre foyer ?': 'nombre_adultes',
+  'combien d\'enfants vivent avec vous ? merci d\'indiquer les âges': 'nombre_enfants',
+  'les membres de la famille sont-ils tous d\'accord pour accueillir un animal en fa ?': 'famille_daccord',
+  'l\'un des membres de la famille souffre-t-il d\'asthme, d\'allergies ou de maladie pouvant être due au contact avec les animaux ?': 'allergies',
+  'vivez-vous en appartement ou maison ?': 'type_logement',
+  'superficie :': 'superficie',
+  'l\' animal sera-t-il en présence d\'autres animaux ?': 'autres_animaux',
+  'si oui lesquels :': 'types_autres_animaux',
+  'avez-vous la possibilité de les isoler les uns des autres ?': 'peut_isoler',
+  
+  // Colonnes de contraintes
+  'possédez-vous l\'attestation d\'aptitude à détenir un chien catégorisé ?': 'attestation_categorise',
+  'pensez-vous avoir la patience nécessaire à l\'éducation d\'un chiot ou d\'un chaton ?': 'patience_chiot_chaton',
+  'pensez-vous avoir la patience nécessaire à l\'éducation d\'un animal adulte qui a souffert d\'abandon ou de maltraitance et qui n\'a jamais connu la vie de famille ?': 'patience_adulte_traumatise',
+  'l\'animal restera-t-il seul dans la journée ?': 'animal_reste_seul',
+  'si oui, combien de temps ?': 'temps_seul',
+  'etes-vous véhiculée ?': 'vehiculee',
+  'pouvez-vous vous déplacer pour aller récupérer l\'animal ou pour vous rendre chez le vétérinaire ?': 'peut_se_deplacer',
+  
+  // Autres colonnes
+  'n° département': 'departement',
+  'libre / occupé': 'statut',
+  'animal': 'animaux_actuels',
+  'animal eu': 'animaux_actuels',
+  'date de naissance': 'date_naissance',
+  'pseudo facebook': 'pseudo_facebook',
+  'compléments d\'informations': 'notes',
 };
 
 const validEspeces = ['chien', 'chat', 'lapin', 'cheval', 'autre'];
@@ -223,6 +259,87 @@ export function ImportPage() {
             mapped.capacite_max = String(parseInt(mapped.capacite_max) || 1);
           } else {
             mapped.capacite_max = '1';
+          }
+          
+          // Parser les champs numériques
+          if (mapped.nombre_adultes) {
+            mapped.nombre_adultes = String(parseInt(mapped.nombre_adultes) || 1);
+          } else {
+            mapped.nombre_adultes = '1';
+          }
+          
+          if (mapped.nombre_enfants) {
+            mapped.nombre_enfants = String(parseInt(mapped.nombre_enfants) || 0);
+          } else {
+            mapped.nombre_enfants = '0';
+          }
+          
+          if (mapped.superficie) {
+            mapped.superficie = String(parseInt(mapped.superficie) || 0);
+          }
+          
+          // Parser les champs booléens
+          const booleanFields = [
+            'autres_animaux', 'peut_isoler', 'attestation_categorise',
+            'patience_chiot_chaton', 'patience_adulte_traumatise',
+            'animal_reste_seul', 'vehiculee', 'peut_se_deplacer'
+          ];
+          
+          booleanFields.forEach(field => {
+            if (mapped[field]) {
+              mapped[field] = parseBoolean(mapped[field]) ? 'true' : 'false';
+            } else {
+              mapped[field] = 'false';
+            }
+          });
+          
+          // Parser le type de logement
+          if (mapped.type_logement) {
+            const lower = mapped.type_logement.toLowerCase();
+            if (lower.includes('appartement')) {
+              mapped.type_logement = 'appartement';
+            } else if (lower.includes('maison')) {
+              mapped.type_logement = 'maison';
+            } else {
+              mapped.type_logement = '';
+            }
+          }
+          
+          // Parser les espèces acceptées (texte -> tableau)
+          if (mapped.especes_acceptees) {
+            const especes = mapped.especes_acceptees.toLowerCase();
+            const accepted = [];
+            if (especes.includes('chien')) accepted.push('chien');
+            if (especes.includes('chat')) accepted.push('chat');
+            if (especes.includes('lapin')) accepted.push('lapin');
+            if (especes.includes('autre') || especes.includes('nac')) accepted.push('autre');
+            mapped.especes_acceptees = JSON.stringify(accepted);
+          } else {
+            mapped.especes_acceptees = '[]';
+          }
+          
+          // Parser les âges acceptés (texte -> tableau)
+          if (mapped.ages_acceptes) {
+            const ages = mapped.ages_acceptes.toLowerCase();
+            const accepted = [];
+            if (ages.includes('chiot') || ages.includes('chaton')) accepted.push('chiot');
+            if (ages.includes('adulte') || ages.includes('adulte')) accepted.push('adulte');
+            if (ages.includes('senior') || ages.includes('âgé') || ages.includes('age')) accepted.push('senior');
+            mapped.ages_acceptes = JSON.stringify(accepted);
+          } else {
+            mapped.ages_acceptes = '[]';
+          }
+          
+          // Parser les tailles acceptées (texte -> tableau)
+          if (mapped.tailles_acceptees) {
+            const tailles = mapped.tailles_acceptees.toLowerCase();
+            const accepted = [];
+            if (tailles.includes('petit') || tailles.includes('pm')) accepted.push('petit');
+            if (tailles.includes('moyen') || tailles.includes('moyenne')) accepted.push('moyen');
+            if (tailles.includes('grand') || tailles.includes('grande')) accepted.push('grand');
+            mapped.tailles_acceptees = JSON.stringify(accepted);
+          } else {
+            mapped.tailles_acceptees = '[]';
           }
         }
 
@@ -389,10 +506,30 @@ export function ImportPage() {
           ville: row.data.ville || null,
           departement: row.data.departement || null,
           capacite_max: parseInt(row.data.capacite_max) || 1,
+          animaux_actuels: parseInt(row.data.animaux_actuels) || 0,
           materiel_confie: row.data.materiel_confie || null,
           croquettes_fournies: row.data.croquettes_fournies || null,
           notes: row.data.notes || null,
           statut: 'actif' as const,
+          // Nouveaux champs pour le matching
+          especes_acceptees: row.data.especes_acceptees ? JSON.parse(row.data.especes_acceptees) : [],
+          ages_acceptes: row.data.ages_acceptes ? JSON.parse(row.data.ages_acceptes) : [],
+          tailles_acceptees: row.data.tailles_acceptees ? JSON.parse(row.data.tailles_acceptees) : [],
+          nombre_adultes: parseInt(row.data.nombre_adultes) || 1,
+          nombre_enfants: parseInt(row.data.nombre_enfants) || 0,
+          ages_enfants: row.data.ages_enfants || null,
+          autres_animaux: row.data.autres_animaux === 'true',
+          type_logement: row.data.type_logement || null,
+          superficie: row.data.superficie ? parseInt(row.data.superficie) : null,
+          peut_isoler: row.data.peut_isoler === 'true',
+          attestation_categorise: row.data.attestation_categorise === 'true',
+          patience_chiot_chaton: row.data.patience_chiot_chaton === 'true',
+          patience_adulte_traumatise: row.data.patience_adulte_traumatise === 'true',
+          animal_reste_seul: row.data.animal_reste_seul === 'true',
+          temps_seul: row.data.temps_seul || null,
+          vehiculee: row.data.vehiculee === 'true',
+          peut_se_deplacer: row.data.peut_se_deplacer === 'true',
+          specialites: [], // À implémenter si nécessaire
         }));
 
         const { data, error } = await supabase.from('famille_accueils').insert(payload).select('id');
@@ -712,6 +849,14 @@ export function ImportPage() {
                 'nom', 'prenom', 'telephone', 'email', 'adresse',
                 'code_postal', 'ville', 'departement', 'capacite_max',
                 'materiel_confie', 'croquettes_fournies', 'notes', 'statut',
+                'quel animal pouvez-vous accueillir', 'combien d\'adultes vivent dans votre foyer ?',
+                'combien d\'enfants vivent avec vous ?', 'vivez-vous en appartement ou maison ?',
+                'superficie', 'l\'animal sera-t-il en présence d\'autres animaux ?',
+                'avez-vous la possibilité de les isoler les uns des autres ?',
+                'possédez-vous l\'attestation d\'aptitude à détenir un chien catégorisé ?',
+                'pensez-vous avoir la patience nécessaire à l\'éducation d\'un chiot ou d\'un chaton ?',
+                'l\'animal restera-t-il seul dans la journée ?', 'etes-vous véhiculée ?',
+                'pouvez-vous vous déplacer pour aller récupérer l\'animal ?',
               ].map((col) => (
                 <div key={col} className="rounded-lg bg-neutral-50 px-3 py-1.5 text-xs text-neutral-600">
                   {col}
