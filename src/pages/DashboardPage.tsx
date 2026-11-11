@@ -29,7 +29,7 @@ import {
   formatDate,
 } from '../lib/constants';
 import { generateAllAlerts } from '../lib/alerts';
-import type { Animal, Alert } from '../types';
+import type { Animal, Alert, Tache } from '../types';
 
 export function DashboardPage() {
   const { profile } = useAuth();
@@ -55,6 +55,7 @@ export function DashboardPage() {
   });
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [todayEvents, setTodayEvents] = useState<any[]>([]);
+  const [taches, setTaches] = useState<Tache[]>([]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -79,7 +80,7 @@ export function DashboardPage() {
     // Générer automatiquement les alertes
     await generateAllAlerts();
 
-    const [animauxRes, signalementsRes, adoptionsRes, depensesRes, alertsRes, famillesRes, visitesRes] = await Promise.all([
+    const [animauxRes, signalementsRes, adoptionsRes, depensesRes, alertsRes, famillesRes, visitesRes, tachesRes] = await Promise.all([
       supabase.from('animals').select('*').order('created_at', { ascending: false }).limit(5),
       supabase.from('signalements').select('*', { count: 'exact' }),
       supabase.from('adoptions').select('*', { count: 'exact' }).not('statut', 'in', '("adoptee","refusee")'),
@@ -87,6 +88,7 @@ export function DashboardPage() {
       supabase.from('alerts').select('*, animal:animals(*)').eq('statut', 'active').order('date_echeance').limit(10),
       supabase.from('famille_accueils').select('*'),
       supabase.from('visites_veterinaires').select('*').gte('date_visite', new Date().toISOString().split('T')[0]),
+      supabase.from('taches').select('*').eq('assigne_a', profile?.id).neq('statut', 'termine').order('date_echeance', { ascending: true }).limit(5),
     ]);
 
     const animaux = (animauxRes.data ?? []) as Animal[];
@@ -113,6 +115,7 @@ export function DashboardPage() {
 
     setAlerts((alertsRes.data ?? []) as Alert[]);
     setTodayEvents((visitesRes.data ?? []) as any[]);
+    setTaches((tachesRes.data ?? []) as Tache[]);
 
     setLoading(false);
   };
@@ -453,13 +456,50 @@ export function DashboardPage() {
             <CheckCircle className="text-primary-500" size={20} />
             Bloc 10 – Mes Tâches
           </h2>
-          <button onClick={() => toggleBlock('taches')} className="text-neutral-400 hover:text-neutral-600">
-            {collapsedBlocks.taches ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
-          </button>
+          <div className="flex items-center gap-2">
+            <Link to="/taches" className="text-sm text-primary-600 hover:text-primary-700">
+              Voir tout
+            </Link>
+            <button onClick={() => toggleBlock('taches')} className="text-neutral-400 hover:text-neutral-600">
+              {collapsedBlocks.taches ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+            </button>
+          </div>
         </div>
         {!collapsedBlocks.taches && (
           <div className="p-5">
-            <p className="text-sm text-neutral-500">Aucune tâche personnelle assignée</p>
+            {taches.length === 0 ? (
+              <p className="text-sm text-neutral-500">Aucune tâche en cours</p>
+            ) : (
+              <div className="space-y-3">
+                {taches.slice(0, 5).map((tache) => (
+                  <div key={tache.id} className="flex items-center gap-3 rounded-lg bg-neutral-50 p-3">
+                    <div className={`h-2 w-2 rounded-full ${
+                      tache.priorite === 'critique' ? 'bg-error-500' :
+                      tache.priorite === 'urgente' ? 'bg-warning-500' :
+                      tache.priorite === 'normale' ? 'bg-primary-500' : 'bg-neutral-400'
+                    }`} />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-neutral-900">{tache.titre}</p>
+                      {tache.date_echeance && (
+                        <p className="text-xs text-neutral-500">
+                          Échéance: {formatDate(tache.date_echeance)}
+                        </p>
+                      )}
+                    </div>
+                    <Badge className={
+                      tache.priorite === 'critique' ? 'bg-error-100 text-error-700' :
+                      tache.priorite === 'urgente' ? 'bg-warning-100 text-warning-800' :
+                      tache.priorite === 'normale' ? 'bg-primary-100 text-primary-700' :
+                      'bg-neutral-100 text-neutral-600'
+                    }>
+                      {tache.priorite === 'critique' ? 'Critique' :
+                       tache.priorite === 'urgente' ? 'Urgente' :
+                       tache.priorite === 'normale' ? 'Normale' : 'Faible'}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

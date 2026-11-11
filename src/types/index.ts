@@ -447,6 +447,25 @@ export interface Alert {
   animal?: Animal;
 }
 
+export type TachePriorite = 'faible' | 'normale' | 'urgente' | 'critique';
+export type TacheStatut = 'a_faire' | 'en_cours' | 'termine';
+export type TacheCategorie = 'admin' | 'terrain' | 'communication' | 'sante' | 'adoption' | 'autre';
+
+export interface Tache {
+  id: string;
+  titre: string;
+  description?: string;
+  date_echeance?: string;
+  priorite: TachePriorite;
+  categorie: TacheCategorie;
+  assigne_a: string;
+  statut: TacheStatut;
+  date_creation: string;
+  date_completion?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export type RegistreType = 'entree' | 'sortie';
 
 export interface RegistreEntreeSortie {

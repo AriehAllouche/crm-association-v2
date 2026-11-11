@@ -17,6 +17,7 @@ import { TransportsPage } from './pages/TransportsPage';
 import { EnqueteursPage } from './pages/EnqueteursPage';
 import { RegistrePage } from './pages/RegistrePage';
 import { ImportPage } from './pages/ImportPage';
+import { TachesPage } from './pages/TachesPage';
 import { VeterinairesPage } from './pages/VeterinairesPage';
 import { DocumentsPage } from './pages/DocumentsPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
@@ -212,6 +213,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <ImportPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/taches"
+        element={
+          <ProtectedRoute>
+            <TachesPage />
           </ProtectedRoute>
         }
       />
