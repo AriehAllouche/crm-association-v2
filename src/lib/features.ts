@@ -17,7 +17,6 @@
  *      tourné, à auditer avant).
  */
 export const V2_MODULES = new Set<string>([
-  'pension',
   'transport',
   'enqueteurs',
   'registre',

@@ -12,6 +12,7 @@ import { FamillesAccueilPage } from './pages/FamillesAccueilPage';
 import { FamilleDetailPage } from './pages/FamilleDetailPage';
 import { AdoptionsPage } from './pages/AdoptionsPage';
 import { JusticePage } from './pages/JusticePage';
+import { PensionsPage } from './pages/PensionsPage';
 import { VeterinairesPage } from './pages/VeterinairesPage';
 import { DocumentsPage } from './pages/DocumentsPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
@@ -166,7 +167,7 @@ function AppRoutes() {
         path="/pensions"
         element={
           <ProtectedRoute>
-            <ComingSoonPage featureName="Pensions / Fourrières" />
+            <PensionsPage />
           </ProtectedRoute>
         }
       />
