@@ -240,6 +240,33 @@ function parseBoolean(value: string): boolean {
   return ['oui', 'yes', 'true', '1', 'x', 'vrai'].includes(lower);
 }
 
+// Parser les notes structurées des FA
+function parseFamilleAccueilNotes(notes: string): Record<string, string> {
+  const result: Record<string, string> = {};
+  if (!notes) return result;
+  
+  // Extraire les informations structurées des notes
+  const patterns = {
+    statut_terrain: /Statut terrain:\s*([^|]+)/i,
+    profession: /Profession:\s*([^|]+)/i,
+    souhaits_accueil: /Souhaits accueil:\s*([^|]+)/i,
+    duree_dispo: /Durée dispo:\s*([^|]+)/i,
+    enfants_ages: /Enfants\/âges:\s*([^|]+)/i,
+    logement: /Logement:\s*([^|]+)/i,
+    animaux_personnels: /Animaux personnels:\s*([^|]+)/i,
+    notes_supp: /Notes supp:\s*(.+)$/i,
+  };
+  
+  for (const [key, pattern] of Object.entries(patterns)) {
+    const match = notes.match(pattern);
+    if (match) {
+      result[key] = match[1].trim();
+    }
+  }
+  
+  return result;
+}
+
 function parseDate(value: string): string {
   if (!value) return '';
   if (typeof value === 'number') {
@@ -445,6 +472,48 @@ export function ImportPage() {
             mapped.tags_profil = JSON.stringify(profilTags);
           } else {
             mapped.tags_profil = '[]';
+          }
+          
+          // Parser les notes structurées pour extraire des informations supplémentaires
+          if (mapped.remarques_et_notes_libres) {
+            const parsedNotes = parseFamilleAccueilNotes(mapped.remarques_et_notes_libres);
+            
+            // Mapper les informations extraites vers les champs appropriés
+            if (parsedNotes.statut_terrain && !mapped.statut_disponibilite) {
+              mapped.statut_disponibilite = parsedNotes.statut_terrain.toLowerCase().includes('libre') ? 'libre' : 'occupee';
+            }
+            if (parsedNotes.profession && !mapped.profession) {
+              mapped.profession = parsedNotes.profession;
+            }
+            if (parsedNotes.souhaits_accueil && !mapped.animaux_acceptes) {
+              mapped.animaux_acceptes = parsedNotes.souhaits_accueil;
+            }
+            if (parsedNotes.duree_dispo && !mapped.duree_accueil) {
+              mapped.duree_accueil = parsedNotes.duree_dispo;
+            }
+            if (parsedNotes.enfants_ages && !mapped.nb_enfants_et_ages) {
+              mapped.nb_enfants_et_ages = parsedNotes.enfants_ages;
+            }
+            if (parsedNotes.logement && !mapped.type_logement) {
+              const lower = parsedNotes.logement.toLowerCase();
+              if (lower.includes('appartement')) {
+                mapped.type_logement = 'appartement';
+              } else if (lower.includes('maison')) {
+                mapped.type_logement = 'maison';
+              }
+              // Extraire la superficie si présente
+              const superficieMatch = parsedNotes.logement.match(/(\d+)\s*m/i);
+              if (superficieMatch && !mapped.superficie_logement) {
+                mapped.superficie_logement = superficieMatch[1];
+              }
+            }
+            if (parsedNotes.animaux_personnels && !mapped.details_autres_animaux) {
+              mapped.details_autres_animaux = parsedNotes.animaux_personnels;
+              mapped.presence_autres_animaux = 'true';
+            }
+            if (parsedNotes.notes_supp) {
+              mapped.remarques_et_notes_libres = parsedNotes.notes_supp;
+            }
           }
         }
 
