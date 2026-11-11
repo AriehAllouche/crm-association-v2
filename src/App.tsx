@@ -15,6 +15,7 @@ import { JusticePage } from './pages/JusticePage';
 import { PensionsPage } from './pages/PensionsPage';
 import { TransportsPage } from './pages/TransportsPage';
 import { EnqueteursPage } from './pages/EnqueteursPage';
+import { RegistrePage } from './pages/RegistrePage';
 import { VeterinairesPage } from './pages/VeterinairesPage';
 import { DocumentsPage } from './pages/DocumentsPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
@@ -201,7 +202,7 @@ function AppRoutes() {
         path="/registre"
         element={
           <ProtectedRoute>
-            <ComingSoonPage featureName="Registre légal" />
+            <RegistrePage />
           </ProtectedRoute>
         }
       />
