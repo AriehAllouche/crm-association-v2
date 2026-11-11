@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { LoadingSpinner, Badge } from '../components/ui';
+import { useAuth } from '../context/AuthContext';
 import {
   alertPrioriteColors,
   alertPrioriteLabels,
@@ -31,8 +32,9 @@ import { generateAllAlerts } from '../lib/alerts';
 import type { Animal, Alert } from '../types';
 
 export function DashboardPage() {
+  const { profile } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [userName] = useState('Margareth');
+  const [userName] = useState(profile?.full_name || 'Utilisateur');
   const [collapsedBlocks, setCollapsedBlocks] = useState<Record<string, boolean>>({});
   const [stats, setStats] = useState({
     totalAnimaux: 0,
