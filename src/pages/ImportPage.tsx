@@ -138,10 +138,43 @@ const familleAccueilColumnMapping: Record<string, string> = {
   'compléments d\'informations': 'notes',
 };
 
-// Mapping par position de colonne pour les colonnes tronquées
+// Mapping par position de colonne pour le fichier Excel spécifique des FA
 const familleAccueilColumnPositionMapping: Record<number, string> = {
-  28: 'patience_chiot_chaton', // Pensez-vous avoir la patience nécessaire à l'é... (chiot/chaton)
-  29: 'patience_adulte_traumatise', // Pensez-vous avoir la patience nécessaire à l'é... (adulte traumatisé)
+  0: 'profil_particulier', // Tags/spécificités (FA CHAT UNIQUEMENT, etc.)
+  1: 'departement', // N° département
+  2: 'statut_disponibilite', // Libre / Occupé
+  3: 'animal_accueilli_actuel', // Animal actuel
+  4: 'animal_eu', // Animal Eu
+  5: 'nom', // Nom
+  6: 'prenom', // Prénom
+  7: 'telephone', // Téléphone
+  8: 'date_naissance', // Date de naissance
+  9: 'adresse', // Adresse
+  10: 'code_postal', // Code postal
+  11: 'ville', // Ville
+  12: 'profession', // Profession
+  13: 'email', // E-mail
+  14: 'pseudo_facebook', // Pseudo Facebook
+  15: 'especes_acceptees', // Quel animal pouvez-vous accueillir
+  16: 'urgence_2_animaux', // Pouvez-vous accueillir suivant l'urgence
+  17: 'duree_accueil', // Durée de l'accueil
+  18: 'nombre_adultes', // Combien d'adultes
+  19: 'nombre_enfants', // Combien d'enfants
+  20: 'famille_daccord', // Membres d'accord
+  21: 'allergies', // Allergies
+  22: 'type_logement', // Appartement/Maison
+  23: 'superficie', // Superficie
+  24: 'autres_animaux', // Autres animaux
+  25: 'types_autres_animaux', // Si oui lesquels
+  26: 'peut_isoler', // Isoler
+  27: 'attestation_categorise', // Attestation catégorisé
+  28: 'patience_chiot_chaton', // Patience chiot/chaton
+  29: 'patience_adulte_traumatise', // Patience adulte traumatisé
+  30: 'animal_reste_seul', // Animal seul
+  31: 'temps_seul', // Temps seul
+  32: 'vehiculee', // Véhiculée
+  33: 'peut_se_deplacer', // Déplacement
+  34: 'notes', // Compléments d'informations
 };
 
 const validEspeces = ['chien', 'chat', 'lapin', 'cheval', 'autre'];
@@ -295,7 +328,8 @@ export function ImportPage() {
           const booleanFields = [
             'autres_animaux', 'peut_isoler', 'attestation_categorise',
             'patience_chiot_chaton', 'patience_adulte_traumatise',
-            'animal_reste_seul', 'vehiculee', 'peut_se_deplacer'
+            'animal_reste_seul', 'vehiculee', 'peut_se_deplacer',
+            'famille_daccord', 'urgence_2_animaux'
           ];
           
           booleanFields.forEach(field => {
@@ -315,6 +349,18 @@ export function ImportPage() {
               mapped.type_logement = 'maison';
             } else {
               mapped.type_logement = '';
+            }
+          }
+          
+          // Parser le statut de disponibilité
+          if (mapped.statut_disponibilite) {
+            const lower = mapped.statut_disponibilite.toLowerCase();
+            if (lower.includes('libre')) {
+              mapped.statut_disponibilite = 'libre';
+            } else if (lower.includes('occup')) {
+              mapped.statut_disponibilite = 'occupee';
+            } else {
+              mapped.statut_disponibilite = 'libre';
             }
           }
           
@@ -353,6 +399,19 @@ export function ImportPage() {
             mapped.tailles_acceptees = JSON.stringify(accepted);
           } else {
             mapped.tailles_acceptees = '[]';
+          }
+          
+          // Parser le profil particulier (tags)
+          if (mapped.profil_particulier) {
+            const profil = mapped.profil_particulier.toLowerCase();
+            const tags = [];
+            if (profil.includes('chat uniquement')) tags.push('chat_uniquement');
+            if (profil.includes('chien uniquement')) tags.push('chien_uniquement');
+            if (profil.includes('chiot uniquement')) tags.push('chiot_uniquement');
+            if (profil.includes('chaton uniquement')) tags.push('chaton_uniquement');
+            mapped.profil_particulier = JSON.stringify(tags);
+          } else {
+            mapped.profil_particulier = '[]';
           }
         }
 
@@ -543,6 +602,19 @@ export function ImportPage() {
           vehiculee: row.data.vehiculee === 'true',
           peut_se_deplacer: row.data.peut_se_deplacer === 'true',
           specialites: [], // À implémenter si nécessaire
+          // Nouveaux champs du fichier Excel spécifique
+          profil_particulier: row.data.profil_particulier ? JSON.parse(row.data.profil_particulier) : [],
+          statut_disponibilite: row.data.statut_disponibilite || 'libre',
+          animal_accueilli_actuel: row.data.animal_accueilli_actuel || null,
+          animal_eu: row.data.animal_eu || null,
+          date_naissance: row.data.date_naissance || null,
+          profession: row.data.profession || null,
+          pseudo_facebook: row.data.pseudo_facebook || null,
+          urgence_2_animaux: row.data.urgence_2_animaux === 'true',
+          duree_accueil: row.data.duree_accueil || null,
+          famille_daccord: row.data.famille_daccord === 'true',
+          allergies: row.data.allergies || null,
+          types_autres_animaux: row.data.types_autres_animaux || null,
         }));
 
         const { data, error } = await supabase.from('famille_accueils').insert(payload).select('id');
