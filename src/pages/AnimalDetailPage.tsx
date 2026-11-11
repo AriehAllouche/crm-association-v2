@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Pencil, Dog, Siren, HeartHandshake, Stethoscope, Scale,
   Building2, Truck, FileText, Euro, Activity, MapPin, Syringe, Calendar,
-  Home, AlertTriangle, ChevronRight, Trash2, History,
+  Home, AlertTriangle, ChevronRight, Trash2, History, Users,
 } from 'lucide-react';
 import { fetchAnimalDetails, type AnimalDetails, type StatusHistoryEvent } from '../lib/animalDetails';
 import { supabase } from '../lib/supabase';
@@ -124,11 +124,15 @@ export function AnimalDetailPage() {
   };
 
   const tabs = [
+    { id: 'identite', label: 'Identité', icon: Dog, count: 1 },
+    { id: 'situation', label: 'Situation', icon: MapPin, count: 1 },
+    { id: 'responsables', label: 'Responsables', icon: Users, count: 1 },
     { id: 'timeline', label: 'Timeline', icon: Activity, count: timeline.length },
     { id: 'historique', label: 'Historique', icon: History, count: status_history.length + visites.length + documents.length },
     { id: 'signalement', label: 'Signalement', icon: Siren, count: signalement ? 1 : 0 },
     { id: 'famille', label: 'Famille d\'accueil', icon: Home, count: familles_accueil.length },
     { id: 'veterinaire', label: 'Vétérinaire', icon: Stethoscope, count: visites.length },
+    { id: 'comportement', label: 'Comportement', icon: Activity, count: 0 },
     { id: 'justice', label: 'Justice', icon: Scale, count: justice.length },
     { id: 'pension', label: 'Pension', icon: Building2, count: sejours.length },
     { id: 'transport', label: 'Transport', icon: Truck, count: transports.length },
@@ -141,7 +145,7 @@ export function AnimalDetailPage() {
     // Les modules reportés en V2 sont annoncés « à venir » dans la navigation:
     // les exposer ici, remplis de données, contredirait cette promesse.
     .filter((t) => !isV2(t.id))
-    .filter((t) => t.count > 0 || ['timeline', 'historique', 'famille', 'veterinaire', 'documents', 'depenses', 'registre'].includes(t.id));
+    .filter((t) => t.count > 0 || ['identite', 'situation', 'responsables', 'timeline', 'historique', 'famille', 'veterinaire', 'comportement', 'documents', 'depenses', 'registre'].includes(t.id));
 
   return (
     <div>
@@ -149,7 +153,7 @@ export function AnimalDetailPage() {
         <ArrowLeft size={16} /> Retour à la liste
       </button>
 
-      {/* Header */}
+      {/* Header - Bandeau de synthèse permanent */}
       <div className="card mb-6 overflow-hidden">
         <div className="flex flex-col gap-4 p-6 sm:flex-row">
           <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-neutral-100">
@@ -197,6 +201,14 @@ export function AnimalDetailPage() {
               {animal.remis_proprietaire && <Badge className="bg-success-100 text-success-700">Remis propriétaire</Badge>}
               <Badge className="bg-error-50 text-error-700"><Euro size={12} className="mr-1" />{formatCurrency(cout_total)}</Badge>
               {alerts.length > 0 && <Badge className="bg-warning-100 text-warning-800"><AlertTriangle size={12} className="mr-1" />{alerts.length} alerte{alerts.length > 1 ? 's' : ''}</Badge>}
+              {justice.length > 0 && <Badge className="bg-neutral-100 text-neutral-700">Justice</Badge>}
+              {faActive.length > 0 && <Badge className="bg-success-100 text-success-700"><Home size={12} className="mr-1" />FA: {faActive[0].famille_accueil?.nom}</Badge>}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-4 text-xs text-neutral-500">
+              <span>Statut juridique: {justice.length > 0 ? 'Dossier en cours' : 'Aucun dossier'}</span>
+              <span>Coût total: {formatCurrency(cout_total)}</span>
+              <span>Alertes: {alerts.length}</span>
+              {visites.length > 0 && visites[0].prochaine_visite && <span className="flex items-center gap-1"><Calendar size={12} /> Prochaine visite: {formatDate(visites[0].prochaine_visite)}</span>}
             </div>
           </div>
         </div>
@@ -239,6 +251,186 @@ export function AnimalDetailPage() {
 
       {/* Tab content */}
       <div className="animate-fade-in">
+        {/* IDENTITÉ */}
+        {activeTab === 'identite' && (
+          <div className="card p-6">
+            <h2 className="mb-4 font-heading text-lg font-semibold text-neutral-900">Informations d'identité</h2>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Nom</p>
+                <p className="mt-1 font-medium text-neutral-900">{animal.nom}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Espèce</p>
+                <p className="mt-1">{especeLabels[animal.espece]}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Race</p>
+                <p className="mt-1">{animal.race || '—'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Sexe</p>
+                <p className="mt-1">{animal.sexe === 'male' ? 'Mâle' : animal.sexe === 'femelle' ? 'Femille' : 'Inconnu'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Date de naissance</p>
+                <p className="mt-1">{animal.date_naissance ? formatDate(animal.date_naissance) : '—'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Âge estimé</p>
+                <p className="mt-1">{animal.age_estime || '—'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Couleur / Robe</p>
+                <p className="mt-1">{animal.couleur || '—'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Poids</p>
+                <p className="mt-1">{animal.poids || '—'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Taille</p>
+                <p className="mt-1">{animal.taille || '—'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Numéro ICAD</p>
+                <p className="mt-1 font-mono">{animal.numero_icad || '—'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Numéro de puce</p>
+                <p className="mt-1 font-mono">{animal.numero_puce || '—'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Catégorie</p>
+                <p className="mt-1">{animal.description || '—'}</p>
+              </div>
+              <div className="sm:col-span-2">
+                <p className="text-sm font-medium text-neutral-500">Diagnose</p>
+                <p className="mt-1">{animal.comportement || '—'}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* SITUATION */}
+        {activeTab === 'situation' && (
+          <div className="card p-6">
+            <h2 className="mb-4 font-heading text-lg font-semibold text-neutral-900">Situation actuelle</h2>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Statut actuel</p>
+                <p className="mt-1"><Badge className={animalStatutColors[animal.statut]}>{animalStatutLabels[animal.statut]}</Badge></p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Lieu actuel</p>
+                <p className="mt-1 flex items-center gap-1"><MapPin size={14} /> {animal.lieu_actuel || '—'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Date de prise en charge</p>
+                <p className="mt-1">{animal.date_pec ? formatDate(animal.date_pec) : '—'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Date de sortie</p>
+                <p className="mt-1">{animal.date_sortie ? formatDate(animal.date_sortie) : '—'}</p>
+              </div>
+              <div className="sm:col-span-2">
+                <p className="text-sm font-medium text-neutral-500">Motif de sortie</p>
+                <p className="mt-1">{animal.motif_sortie || '—'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Statut de santé</p>
+                <p className="mt-1"><Badge className={santeStatutColors[animal.sante_statut]}>Santé: {santeStatutLabels[animal.sante_statut]}</Badge></p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Statut juridique</p>
+                <p className="mt-1">{justice.length > 0 ? 'Dossier judiciaire en cours' : 'Aucun dossier'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Stérilisé</p>
+                <p className="mt-1">{animal.sterilise ? 'Oui' : 'Non'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Vacciné</p>
+                <p className="mt-1">{animal.vaccinne ? 'Oui' : 'Non'}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* RESPONSABLES */}
+        {activeTab === 'responsables' && (
+          <div className="card p-6">
+            <h2 className="mb-4 font-heading text-lg font-semibold text-neutral-900">Répartition des responsabilités</h2>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="rounded-lg bg-neutral-50 p-4">
+                <p className="text-sm font-medium text-neutral-500">Présidente</p>
+                <p className="mt-1 text-neutral-900">Christelle</p>
+              </div>
+              <div className="rounded-lg bg-neutral-50 p-4">
+                <p className="text-sm font-medium text-neutral-500">Responsable dossier</p>
+                <p className="mt-1 text-neutral-900">À définir</p>
+              </div>
+              <div className="rounded-lg bg-neutral-50 p-4">
+                <p className="text-sm font-medium text-neutral-500">Responsable animaux</p>
+                <p className="mt-1 text-neutral-900">À définir</p>
+              </div>
+              <div className="rounded-lg bg-neutral-50 p-4">
+                <p className="text-sm font-medium text-neutral-500">Enquêteur</p>
+                <p className="mt-1 text-neutral-900">{signalement?.enqueteur_id ? 'Affecté' : 'À définir'}</p>
+              </div>
+              <div className="rounded-lg bg-neutral-50 p-4">
+                <p className="text-sm font-medium text-neutral-500">Éducateur</p>
+                <p className="mt-1 text-neutral-900">À définir</p>
+              </div>
+              <div className="rounded-lg bg-neutral-50 p-4">
+                <p className="text-sm font-medium text-neutral-500">Famille d'accueil</p>
+                <p className="mt-1 text-neutral-900">{faActive.length > 0 ? faActive[0].famille_accueil?.nom + ' ' + faActive[0].famille_accueil?.prenom : 'À définir'}</p>
+              </div>
+              <div className="rounded-lg bg-neutral-50 p-4">
+                <p className="text-sm font-medium text-neutral-500">Vétérinaire</p>
+                <p className="mt-1 text-neutral-900">{visites.length > 0 && visites[0].veterinaire ? visites[0].veterinaire.nom : 'À définir'}</p>
+              </div>
+              <div className="rounded-lg bg-neutral-50 p-4">
+                <p className="text-sm font-medium text-neutral-500">Communication</p>
+                <p className="mt-1 text-neutral-900">À définir</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* COMPORTEMENT */}
+        {activeTab === 'comportement' && (
+          <div className="card p-6">
+            <h2 className="mb-4 font-heading text-lg font-semibold text-neutral-900">Évaluation comportementale</h2>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Évaluation initiale</p>
+                <p className="mt-1 text-neutral-900">{animal.comportement || 'Aucune évaluation enregistrée'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Niveau</p>
+                <p className="mt-1 text-neutral-900">À définir</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Éducateur référent</p>
+                <p className="mt-1 text-neutral-900">À définir</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Historique des séances</p>
+                <p className="mt-1 text-neutral-500">Aucune séance enregistrée</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Bilan</p>
+                <p className="mt-1 text-neutral-500">Aucun bilan disponible</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Conseils et objectifs</p>
+                <p className="mt-1 text-neutral-500">Aucun conseil enregistré</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* HISTORIQUE */}
         {activeTab === 'historique' && (
           <div className="card p-6">
@@ -616,17 +808,46 @@ export function AnimalDetailPage() {
               {depenses.length === 0 ? (
                 <EmptyState icon={Euro} title="Aucune dépense" />
               ) : (
-                <div className="space-y-2">
-                  {depenses.map((d) => (
-                    <div key={d.id} className="flex items-center justify-between py-2">
-                      <div>
-                        <p className="text-sm font-medium text-neutral-900">{d.description}</p>
-                        <p className="text-xs text-neutral-500">{d.type} · {formatDate(d.date_depense)}</p>
-                      </div>
-                      <span className="font-medium text-neutral-900">{formatCurrency(d.montant)}</span>
+                <>
+                  {/* Catégorisation des coûts */}
+                  <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+                    <div className="rounded-lg bg-primary-50 p-3 text-center">
+                      <p className="text-lg font-bold text-primary-600">{formatCurrency(depenses.filter(d => d.type === 'veterinaire').reduce((sum, d) => sum + d.montant, 0))}</p>
+                      <p className="text-xs text-neutral-600">Vétérinaire</p>
                     </div>
-                  ))}
-                </div>
+                    <div className="rounded-lg bg-secondary-50 p-3 text-center">
+                      <p className="text-lg font-bold text-secondary-600">{formatCurrency(depenses.filter(d => d.type === 'pension').reduce((sum, d) => sum + d.montant, 0))}</p>
+                      <p className="text-xs text-neutral-600">Pension</p>
+                    </div>
+                    <div className="rounded-lg bg-warning-50 p-3 text-center">
+                      <p className="text-lg font-bold text-warning-600">{formatCurrency(depenses.filter(d => d.type === 'transport').reduce((sum, d) => sum + d.montant, 0))}</p>
+                      <p className="text-xs text-neutral-600">Transport</p>
+                    </div>
+                    <div className="rounded-lg bg-accent-50 p-3 text-center">
+                      <p className="text-lg font-bold text-accent-600">{formatCurrency(depenses.filter(d => d.type === 'nourriture').reduce((sum, d) => sum + d.montant, 0))}</p>
+                      <p className="text-xs text-neutral-600">Nourriture</p>
+                    </div>
+                    <div className="rounded-lg bg-success-50 p-3 text-center">
+                      <p className="text-lg font-bold text-success-600">{formatCurrency(depenses.filter(d => d.type === 'materiel').reduce((sum, d) => sum + d.montant, 0))}</p>
+                      <p className="text-xs text-neutral-600">Matériel</p>
+                    </div>
+                    <div className="rounded-lg bg-neutral-50 p-3 text-center">
+                      <p className="text-lg font-bold text-neutral-600">{formatCurrency(cout_total)}</p>
+                      <p className="text-xs text-neutral-600">Total</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {depenses.map((d) => (
+                      <div key={d.id} className="flex items-center justify-between py-2">
+                        <div>
+                          <p className="text-sm font-medium text-neutral-900">{d.description}</p>
+                          <p className="text-xs text-neutral-500">{d.type} · {formatDate(d.date_depense)}</p>
+                        </div>
+                        <span className="font-medium text-neutral-900">{formatCurrency(d.montant)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
           </div>
