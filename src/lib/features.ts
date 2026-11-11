@@ -16,9 +16,7 @@
  *      que ce n'est pas fait — les pages existent déjà mais n'ont jamais
  *      tourné, à auditer avant).
  */
-export const V2_MODULES = new Set<string>([
-  'import',
-]);
+export const V2_MODULES = new Set<string>([]);
 
 /**
  * @param module Clé de module. Les onglets de fiche animal, les types

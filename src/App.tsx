@@ -16,6 +16,7 @@ import { PensionsPage } from './pages/PensionsPage';
 import { TransportsPage } from './pages/TransportsPage';
 import { EnqueteursPage } from './pages/EnqueteursPage';
 import { RegistrePage } from './pages/RegistrePage';
+import { ImportPage } from './pages/ImportPage';
 import { VeterinairesPage } from './pages/VeterinairesPage';
 import { DocumentsPage } from './pages/DocumentsPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
@@ -210,7 +211,7 @@ function AppRoutes() {
         path="/import"
         element={
           <ProtectedRoute>
-            <ComingSoonPage featureName="Import Excel" />
+            <ImportPage />
           </ProtectedRoute>
         }
       />
