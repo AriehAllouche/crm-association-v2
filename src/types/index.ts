@@ -166,6 +166,27 @@ export interface FamilleAccueil {
   notes?: string;
   statut?: 'active' | 'refusee' | 'en_attente';
   rejection_reason?: string;
+  // Nouveaux champs pour le matching intelligent
+  especes_acceptees?: string[];
+  ages_acceptes?: string[];
+  tailles_acceptees?: string[];
+  nombre_adultes?: number;
+  nombre_enfants?: number;
+  ages_enfants?: string;
+  autres_animaux?: boolean;
+  type_logement?: 'appartement' | 'maison';
+  superficie?: number;
+  peut_isoler?: boolean;
+  attestation_categorise?: boolean;
+  patience_chiot_chaton?: boolean;
+  patience_adulte_traumatise?: boolean;
+  animal_reste_seul?: boolean;
+  temps_seul?: string;
+  vehiculee?: boolean;
+  peut_se_deplacer?: boolean;
+  latitude?: number;
+  longitude?: number;
+  specialites?: string[];
   created_at: string;
   updated_at: string;
 }

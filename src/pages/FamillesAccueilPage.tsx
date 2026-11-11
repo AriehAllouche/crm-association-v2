@@ -18,6 +18,25 @@ const emptyForm = {
   materiel_confie: '',
   croquettes_fournies: '',
   notes: '',
+  // Nouveaux champs pour le matching
+  especes_acceptees: [] as string[],
+  ages_acceptes: [] as string[],
+  tailles_acceptees: [] as string[],
+  nombre_adultes: 1,
+  nombre_enfants: 0,
+  ages_enfants: '',
+  autres_animaux: false,
+  type_logement: '' as 'appartement' | 'maison' | '',
+  superficie: '',
+  peut_isoler: false,
+  attestation_categorise: false,
+  patience_chiot_chaton: false,
+  patience_adulte_traumatise: false,
+  animal_reste_seul: false,
+  temps_seul: '',
+  vehiculee: false,
+  peut_se_deplacer: false,
+  specialites: [] as string[],
 };
 
 export function FamillesAccueilPage() {
@@ -81,6 +100,10 @@ export function FamillesAccueilPage() {
       animaux_actuels: 0,
       contrat_actif: true,
       date_debut_contrat: new Date().toISOString().split('T')[0],
+      nombre_adultes: Number(form.nombre_adultes) || 1,
+      nombre_enfants: Number(form.nombre_enfants) || 0,
+      superficie: form.superficie ? Number(form.superficie) : null,
+      type_logement: form.type_logement || null,
     };
 
     try {
@@ -323,6 +346,282 @@ export function FamillesAccueilPage() {
                 className="input"
                 placeholder="Informations complémentaires..."
               />
+            </div>
+          </div>
+
+          {/* Section Matching Intelligent */}
+          <div className="border-t border-neutral-200 pt-4">
+            <h3 className="mb-3 font-heading text-base font-semibold text-neutral-900">
+              Préférences d'accueil
+            </h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="label">Espèces acceptées</label>
+                <div className="flex flex-wrap gap-2">
+                  {['chien', 'chat', 'lapin', 'autre'].map((espece) => (
+                    <label key={espece} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={form.especes_acceptees.includes(espece)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setForm({ ...form, especes_acceptees: [...form.especes_acceptees, espece] });
+                          } else {
+                            setForm({ ...form, especes_acceptees: form.especes_acceptees.filter(e => e !== espece) });
+                          }
+                        }}
+                        className="rounded border-neutral-300"
+                      />
+                      {espece}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="label">Âges acceptés</label>
+                <div className="flex flex-wrap gap-2">
+                  {['chiot', 'adulte', 'senior'].map((age) => (
+                    <label key={age} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={form.ages_acceptes.includes(age)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setForm({ ...form, ages_acceptes: [...form.ages_acceptes, age] });
+                          } else {
+                            setForm({ ...form, ages_acceptes: form.ages_acceptes.filter(a => a !== age) });
+                          }
+                        }}
+                        className="rounded border-neutral-300"
+                      />
+                      {age}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="label">Tailles acceptées</label>
+                <div className="flex flex-wrap gap-2">
+                  {['petit', 'moyen', 'grand'].map((taille) => (
+                    <label key={taille} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={form.tailles_acceptees.includes(taille)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setForm({ ...form, tailles_acceptees: [...form.tailles_acceptees, taille] });
+                          } else {
+                            setForm({ ...form, tailles_acceptees: form.tailles_acceptees.filter(t => t !== taille) });
+                          }
+                        }}
+                        className="rounded border-neutral-300"
+                      />
+                      {taille}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="label">Spécialités</label>
+                <div className="flex flex-wrap gap-2">
+                  {['handicap', 'categorise', 'agressif', 'senior'].map((spec) => (
+                    <label key={spec} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={form.specialites.includes(spec)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setForm({ ...form, specialites: [...form.specialites, spec] });
+                          } else {
+                            setForm({ ...form, specialites: form.specialites.filter(s => s !== spec) });
+                          }
+                        }}
+                        className="rounded border-neutral-300"
+                      />
+                      {spec}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section Contexte Familial */}
+          <div className="border-t border-neutral-200 pt-4">
+            <h3 className="mb-3 font-heading text-base font-semibold text-neutral-900">
+              Contexte familial
+            </h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="label">Nombre d'adultes</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={form.nombre_adultes}
+                  onChange={(e) => setForm({ ...form, nombre_adultes: Number(e.target.value) })}
+                  className="input"
+                  placeholder="1"
+                />
+              </div>
+              <div>
+                <label className="label">Nombre d'enfants</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={form.nombre_enfants}
+                  onChange={(e) => setForm({ ...form, nombre_enfants: Number(e.target.value) })}
+                  className="input"
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <label className="label">Âges des enfants</label>
+                <input
+                  type="text"
+                  value={form.ages_enfants}
+                  onChange={(e) => setForm({ ...form, ages_enfants: e.target.value })}
+                  className="input"
+                  placeholder="Ex: 2 ans, 5 ans, 8 ans"
+                />
+              </div>
+              <div>
+                <label className="label">Type de logement</label>
+                <select
+                  value={form.type_logement}
+                  onChange={(e) => setForm({ ...form, type_logement: e.target.value as 'appartement' | 'maison' | '' })}
+                  className="input"
+                >
+                  <option value="">Sélectionner</option>
+                  <option value="appartement">Appartement</option>
+                  <option value="maison">Maison</option>
+                </select>
+              </div>
+              <div>
+                <label className="label">Superficie (m²)</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={form.superficie}
+                  onChange={(e) => setForm({ ...form, superficie: e.target.value })}
+                  className="input"
+                  placeholder="Ex: 80"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="autres_animaux"
+                  checked={form.autres_animaux}
+                  onChange={(e) => setForm({ ...form, autres_animaux: e.target.checked })}
+                  className="rounded border-neutral-300"
+                />
+                <label htmlFor="autres_animaux" className="text-sm text-neutral-700">
+                  Présence d'autres animaux
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Section Contraintes */}
+          <div className="border-t border-neutral-200 pt-4">
+            <h3 className="mb-3 font-heading text-base font-semibold text-neutral-900">
+              Contraintes et capacités
+            </h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="peut_isoler"
+                  checked={form.peut_isoler}
+                  onChange={(e) => setForm({ ...form, peut_isoler: e.target.checked })}
+                  className="rounded border-neutral-300"
+                />
+                <label htmlFor="peut_isoler" className="text-sm text-neutral-700">
+                  Peut isoler les animaux
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="attestation_categorise"
+                  checked={form.attestation_categorise}
+                  onChange={(e) => setForm({ ...form, attestation_categorise: e.target.checked })}
+                  className="rounded border-neutral-300"
+                />
+                <label htmlFor="attestation_categorise" className="text-sm text-neutral-700">
+                  Attestation pour animaux catégorisés
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="patience_chiot_chaton"
+                  checked={form.patience_chiot_chaton}
+                  onChange={(e) => setForm({ ...form, patience_chiot_chaton: e.target.checked })}
+                  className="rounded border-neutral-300"
+                />
+                <label htmlFor="patience_chiot_chaton" className="text-sm text-neutral-700">
+                  Patience pour chiots/chatons
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="patience_adulte_traumatise"
+                  checked={form.patience_adulte_traumatise}
+                  onChange={(e) => setForm({ ...form, patience_adulte_traumatise: e.target.checked })}
+                  className="rounded border-neutral-300"
+                />
+                <label htmlFor="patience_adulte_traumatise" className="text-sm text-neutral-700">
+                  Patience pour adultes traumatisés
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="animal_reste_seul"
+                  checked={form.animal_reste_seul}
+                  onChange={(e) => setForm({ ...form, animal_reste_seul: e.target.checked })}
+                  className="rounded border-neutral-300"
+                />
+                <label htmlFor="animal_reste_seul" className="text-sm text-neutral-700">
+                  L'animal reste seul
+                </label>
+              </div>
+              <div>
+                <label className="label">Temps seul (si applicable)</label>
+                <input
+                  type="text"
+                  value={form.temps_seul}
+                  onChange={(e) => setForm({ ...form, temps_seul: e.target.value })}
+                  className="input"
+                  placeholder="Ex: 4h par jour"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="vehiculee"
+                  checked={form.vehiculee}
+                  onChange={(e) => setForm({ ...form, vehiculee: e.target.checked })}
+                  className="rounded border-neutral-300"
+                />
+                <label htmlFor="vehiculee" className="text-sm text-neutral-700">
+                  Véhiculée
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="peut_se_deplacer"
+                  checked={form.peut_se_deplacer}
+                  onChange={(e) => setForm({ ...form, peut_se_deplacer: e.target.checked })}
+                  className="rounded border-neutral-300"
+                />
+                <label htmlFor="peut_se_deplacer" className="text-sm text-neutral-700">
+                  Peut se déplacer
+                </label>
+              </div>
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-2">
