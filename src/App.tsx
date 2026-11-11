@@ -11,6 +11,7 @@ import { SignalementDetailPage } from './pages/SignalementDetailPage';
 import { FamillesAccueilPage } from './pages/FamillesAccueilPage';
 import { FamilleDetailPage } from './pages/FamilleDetailPage';
 import { AdoptionsPage } from './pages/AdoptionsPage';
+import { JusticePage } from './pages/JusticePage';
 import { VeterinairesPage } from './pages/VeterinairesPage';
 import { DocumentsPage } from './pages/DocumentsPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
@@ -157,7 +158,7 @@ function AppRoutes() {
         path="/justice"
         element={
           <ProtectedRoute>
-            <ComingSoonPage featureName="Justice" />
+            <JusticePage />
           </ProtectedRoute>
         }
       />
