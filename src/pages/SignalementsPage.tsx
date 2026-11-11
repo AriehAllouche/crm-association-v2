@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Plus, Flag, Search, Filter, AlertTriangle, Loader2, MapPin, User, Phone, Mail, FileText } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Flag, Search, Filter, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { PageHeader, LoadingSpinner, EmptyState, Badge, Modal } from '../components/ui';
 import {
@@ -40,13 +40,13 @@ const emptyForm = {
 };
 
 export function SignalementsPage() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [signalements, setSignalements] = useState<Signalement[]>([]);
   const [search, setSearch] = useState('');
   const [statutFilter, setStatutFilter] = useState<SignalementStatut | 'all'>('all');
 
   const [modalOpen, setModalOpen] = useState(false);
-  const [detailSignalement, setDetailSignalement] = useState<Signalement | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -181,7 +181,7 @@ export function SignalementsPage() {
                 {filtered.map((s) => (
                   <tr
                     key={s.id}
-                    onClick={() => setDetailSignalement(s)}
+                    onClick={() => navigate(`/signalements/${s.id}`)}
                     className="cursor-pointer table-row-hover"
                   >
                     <td className="px-4 py-3 font-mono text-sm font-medium text-neutral-900">{s.numero_dossier}</td>
@@ -308,94 +308,6 @@ export function SignalementsPage() {
             </button>
           </div>
         </form>
-      </Modal>
-
-      {/* Detail Modal */}
-      <Modal open={!!detailSignalement} onClose={() => setDetailSignalement(null)} title="Détail du signalement" size="lg">
-        {detailSignalement && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-mono text-sm font-medium text-neutral-900">{detailSignalement.numero_dossier}</p>
-                <p className="text-xs text-neutral-500">Créé le {formatDate(detailSignalement.date_signalement)}</p>
-              </div>
-              <div className="flex gap-2">
-                <Badge className={signalementUrgenceColors[detailSignalement.urgence]}>
-                  {signalementUrgenceLabels[detailSignalement.urgence]}
-                </Badge>
-                <Badge className={statutColors[detailSignalement.statut]}>
-                  {signalementStatutLabels[detailSignalement.statut]}
-                </Badge>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="card p-3">
-                <div className="flex items-center gap-2 text-xs font-medium uppercase text-neutral-400">
-                  <User size={14} /> Déclarant
-                </div>
-                <p className="mt-1 text-sm text-neutral-900">
-                  {detailSignalement.declarant_prenom} {detailSignalement.declarant_nom}
-                </p>
-              </div>
-              <div className="card p-3">
-                <div className="flex items-center gap-2 text-xs font-medium uppercase text-neutral-400">
-                  <MapPin size={14} /> Lieu
-                </div>
-                <p className="mt-1 text-sm text-neutral-900">{detailSignalement.lieu_signalement || '—'}</p>
-              </div>
-              {detailSignalement.declarant_telephone && (
-                <div className="card p-3">
-                  <div className="flex items-center gap-2 text-xs font-medium uppercase text-neutral-400">
-                    <Phone size={14} /> Téléphone
-                  </div>
-                  <p className="mt-1 text-sm text-neutral-900">{detailSignalement.declarant_telephone}</p>
-                </div>
-              )}
-              {detailSignalement.declarant_email && (
-                <div className="card p-3">
-                  <div className="flex items-center gap-2 text-xs font-medium uppercase text-neutral-400">
-                    <Mail size={14} /> Email
-                  </div>
-                  <p className="mt-1 text-sm text-neutral-900">{detailSignalement.declarant_email}</p>
-                </div>
-              )}
-            </div>
-
-            <div className="card p-3">
-              <div className="flex items-center gap-2 text-xs font-medium uppercase text-neutral-400">
-                <FileText size={14} /> Motif
-              </div>
-              <p className="mt-1 text-sm font-medium text-neutral-900">{detailSignalement.motif}</p>
-            </div>
-
-            {detailSignalement.description && (
-              <div className="card p-3">
-                <div className="text-xs font-medium uppercase text-neutral-400">Description</div>
-                <p className="mt-1 text-sm text-neutral-700">{detailSignalement.description}</p>
-              </div>
-            )}
-
-            {detailSignalement.animal_id && detailSignalement.animal && (
-              <div className="card p-3">
-                <div className="text-xs font-medium uppercase text-neutral-400">Animal associé</div>
-                <Link
-                  to={`/animaux/${detailSignalement.animal_id}`}
-                  className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-700"
-                >
-                  {detailSignalement.animal.nom}
-                </Link>
-              </div>
-            )}
-
-            {detailSignalement.urgence === 'critique' && (
-              <div className="flex items-center gap-2 rounded-lg bg-error-50 px-4 py-3 text-sm text-error-700">
-                <AlertTriangle size={18} />
-                Signalement critique — intervention requise rapidement.
-              </div>
-            )}
-          </div>
-        )}
       </Modal>
     </div>
   );

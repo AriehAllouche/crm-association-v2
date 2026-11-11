@@ -7,7 +7,9 @@ import { AnimauxListPage } from './pages/AnimauxListPage';
 import { AnimalFormPage } from './pages/AnimalFormPage';
 import { AnimalDetailPage } from './pages/AnimalDetailPage';
 import { SignalementsPage } from './pages/SignalementsPage';
+import { SignalementDetailPage } from './pages/SignalementDetailPage';
 import { FamillesAccueilPage } from './pages/FamillesAccueilPage';
+import { FamilleDetailPage } from './pages/FamilleDetailPage';
 import { AdoptionsPage } from './pages/AdoptionsPage';
 import { VeterinairesPage } from './pages/VeterinairesPage';
 import { DocumentsPage } from './pages/DocumentsPage';
@@ -104,10 +106,26 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/signalements/:id"
+        element={
+          <ProtectedRoute>
+            <SignalementDetailPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/familles-accueil"
         element={
           <ProtectedRoute>
             <FamillesAccueilPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/familles-accueil/:id"
+        element={
+          <ProtectedRoute>
+            <FamilleDetailPage />
           </ProtectedRoute>
         }
       />

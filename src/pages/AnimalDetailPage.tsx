@@ -175,6 +175,28 @@ export function AnimalDetailPage() {
               </div>
               <div className="flex items-center gap-2">
                 <Badge className={animalStatutColors[animal.statut]}>{animalStatutLabels[animal.statut]}</Badge>
+                <button
+                  onClick={() => {
+                    const annonce = `🐕 ${animal.nom} à l'adoption !\n\n${especeLabels[animal.espece]}${animal.race ? ` · ${animal.race}` : ''}${animal.couleur ? ` · ${animal.couleur}` : ''}\n${animal.sexe === 'male' ? 'Mâle' : animal.sexe === 'femelle' ? 'Femelle' : ''}${animal.date_naissance ? ` · Né le ${formatDate(animal.date_naissance)}` : ''}\n\n${animal.description || 'Ce charmant animal cherche une famille aimante.'}\n\nContactez-nous pour plus d'informations !`;
+                    navigator.clipboard.writeText(annonce);
+                    alert('Annonce copiée dans le presse-papier !');
+                  }}
+                  className="btn-ghost"
+                  title="Générer annonce Facebook"
+                >
+                  <FileText size={16} /> Annonce
+                </button>
+                <button
+                  onClick={() => {
+                    const dossier = `DOSSIER ANIMAL - ${animal.nom}\n\n=== IDENTITÉ ===\nNom: ${animal.nom}\nEspèce: ${especeLabels[animal.espece]}\nRace: ${animal.race || '—'}\nSexe: ${animal.sexe === 'male' ? 'Mâle' : animal.sexe === 'femelle' ? 'Femelle' : '—'}\nDate de naissance: ${animal.date_naissance ? formatDate(animal.date_naissance) : '—'}\nICAD: ${animal.numero_icad || '—'}\nPuce: ${animal.numero_puce || '—'}\n\n=== SITUATION ===\nStatut: ${animalStatutLabels[animal.statut]}\nLieu actuel: ${animal.lieu_actuel || '—'}\nDate PEC: ${animal.date_pec ? formatDate(animal.date_pec) : '—'}\nDate sortie: ${animal.date_sortie ? formatDate(animal.date_sortie) : '—'}\n\n=== SANTÉ ===\nStatut santé: ${santeStatutLabels[animal.sante_statut]}\nStérilisé: ${animal.sterilise ? 'Oui' : 'Non'}\nVacciné: ${animal.vaccinne ? 'Oui' : 'Non'}\nPoids: ${animal.poids || '—'} kg\nNotes: ${animal.sante_notes || '—'}\n\n=== FINANCES ===\nCoût total: ${formatCurrency(cout_total)}\nDurée PEC: ${animal.date_pec ? Math.floor((new Date().getTime() - new Date(animal.date_pec).getTime()) / (1000 * 60 * 60 * 24)) : 0} jours\nCoût moyen/jour: ${animal.date_pec && cout_total > 0 ? formatCurrency(cout_total / Math.max(1, Math.floor((new Date().getTime() - new Date(animal.date_pec).getTime()) / (1000 * 60 * 60 * 24)))) : '—'}\n\n=== TIMELINE ===\n${timeline.map(e => `• ${formatDateTime(e.date)} - ${e.title}`).join('\n')}\n\nGénéré le: ${formatDateTime(new Date().toISOString())}`;
+                    navigator.clipboard.writeText(dossier);
+                    alert('Dossier complet copié dans le presse-papier !');
+                  }}
+                  className="btn-ghost"
+                  title="Exporter dossier PDF"
+                >
+                  <FileText size={16} /> PDF
+                </button>
                 <Link to={`/animaux/${animal.id}/edit`} className="btn-ghost"><Pencil size={16} /> Modifier</Link>
                 <button onClick={() => setShowDeleteConfirm(true)} className="btn-ghost text-error-600 hover:bg-error-50"><Trash2 size={16} /> Supprimer</button>
               </div>
@@ -208,6 +230,12 @@ export function AnimalDetailPage() {
               <span>Statut juridique: {justice.length > 0 ? 'Dossier en cours' : 'Aucun dossier'}</span>
               <span>Coût total: {formatCurrency(cout_total)}</span>
               <span>Alertes: {alerts.length}</span>
+              {animal.date_pec && (
+                <span>Durée PEC: {Math.floor((new Date().getTime() - new Date(animal.date_pec).getTime()) / (1000 * 60 * 60 * 24))} jours</span>
+              )}
+              {animal.date_pec && cout_total > 0 && (
+                <span>Coût moyen/jour: {formatCurrency(cout_total / Math.max(1, Math.floor((new Date().getTime() - new Date(animal.date_pec).getTime()) / (1000 * 60 * 60 * 24))))}</span>
+              )}
               {visites.length > 0 && visites[0].prochaine_visite && <span className="flex items-center gap-1"><Calendar size={12} /> Prochaine visite: {formatDate(visites[0].prochaine_visite)}</span>}
             </div>
           </div>
@@ -450,27 +478,52 @@ export function AnimalDetailPage() {
           </div>
         )}
 
-        {/* TIMELINE */}
+        {/* TIMELINE - Cœur du module */}
         {activeTab === 'timeline' && (
           <div className="card p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="font-heading text-lg font-semibold text-neutral-900">Timeline Dynamique</h2>
+              <div className="flex gap-2">
+                <Badge className="bg-primary-100 text-primary-700">{timeline.length} événements</Badge>
+              </div>
+            </div>
             {timeline.length === 0 ? (
-              <p className="py-8 text-center text-sm text-neutral-500">Aucun événement enregistré.</p>
+              <p className="py-8 text-center text-sm text-neutral-500">Aucun événement enregistré dans la vie de cet animal.</p>
             ) : (
               <div className="space-y-1">
                 {timeline.map((event, i) => {
                   const Icon = timelineIcons[event.type] ?? Activity;
+                  const getEventColor = (type: string) => {
+                    switch (type) {
+                      case 'signalement': return 'bg-error-100 text-error-600';
+                      case 'veterinaire': return 'bg-accent-100 text-accent-600';
+                      case 'famille_accueil': return 'bg-success-100 text-success-600';
+                      case 'pension': return 'bg-warning-100 text-warning-600';
+                      case 'transport': return 'bg-neutral-100 text-neutral-600';
+                      case 'adoption': return 'bg-primary-100 text-primary-600';
+                      case 'justice': return 'bg-secondary-100 text-secondary-600';
+                      case 'depense': return 'bg-error-50 text-error-700';
+                      default: return 'bg-primary-50 text-primary-600';
+                    }
+                  };
                   return (
                     <div key={i} className="flex gap-4">
                       <div className="flex flex-col items-center">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-50 text-primary-600">
-                          <Icon size={18} />
+                        <div className={`flex h-12 w-12 items-center justify-center rounded-full ${getEventColor(event.type)}`}>
+                          <Icon size={20} />
                         </div>
                         {i < timeline.length - 1 && <div className="w-px flex-1 bg-neutral-200" />}
                       </div>
-                      <div className="flex-1 pb-4">
-                        <p className="font-medium text-neutral-900">{event.title}</p>
-                        {event.description && <p className="text-sm text-neutral-500">{event.description}</p>}
-                        <p className="mt-0.5 text-xs text-neutral-400">{formatDateTime(event.date)}</p>
+                      <div className="flex-1 pb-6">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <p className="font-medium text-neutral-900">{event.title}</p>
+                            {event.description && <p className="mt-1 text-sm text-neutral-600">{event.description}</p>}
+                          </div>
+                          <div className="ml-4 text-right">
+                            <p className="text-xs text-neutral-400">{formatDateTime(event.date)}</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   );
@@ -613,38 +666,99 @@ export function AnimalDetailPage() {
           </div>
         )}
 
-        {/* VÉTÉRINAIRE */}
+        {/* VÉTÉRINAIRE - Santé & Carnet Médical complet */}
         {activeTab === 'veterinaire' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="font-heading text-lg font-semibold text-neutral-900">Suivi vétérinaire</h2>
+              <h2 className="font-heading text-lg font-semibold text-neutral-900">Santé & Carnet Médical</h2>
               <div className="flex items-center gap-2">
                 <InlineCreateVetForm onSaved={loadData} />
                 <InlineVetVisitForm animalId={animal.id} onSaved={loadData} />
               </div>
             </div>
-            {visites.length === 0 ? (
-              <div className="card p-6"><EmptyState icon={Stethoscope} title="Aucune visite vétérinaire" /></div>
-            ) : (
-              visites.map((v) => (
-                <div key={v.id} className="card p-5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-neutral-900">{v.motif}</p>
-                      <p className="text-sm text-neutral-500">{formatDate(v.date_visite)}{v.veterinaire ? ` · ${v.veterinaire.nom}` : ''}</p>
-                    </div>
-                    {v.cout != null && <Badge className="bg-error-50 text-error-700">{formatCurrency(v.cout)}</Badge>}
-                  </div>
-                  {v.diagnostic && <p className="mt-2 text-sm text-neutral-600">Diagnostic: {v.diagnostic}</p>}
-                  {v.traitement && <p className="text-sm text-neutral-600">Traitement: {v.traitement}</p>}
-                  {v.prochaine_visite && (
-                    <div className="mt-2 flex items-center gap-2 text-sm text-warning-700">
-                      <Calendar size={14} /> Prochaine visite: {formatDate(v.prochaine_visite)}
-                    </div>
-                  )}
+
+            {/* Résumé santé */}
+            <div className="card p-6">
+              <h3 className="mb-4 font-heading text-base font-semibold text-neutral-900">État de santé actuel</h3>
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                <div className="rounded-lg bg-neutral-50 p-3">
+                  <p className="text-sm font-medium text-neutral-500">Statut santé</p>
+                  <Badge className={santeStatutColors[animal.sante_statut]}>{santeStatutLabels[animal.sante_statut]}</Badge>
                 </div>
-              ))
-            )}
+                <div className="rounded-lg bg-neutral-50 p-3">
+                  <p className="text-sm font-medium text-neutral-500">Stérilisé</p>
+                  <p className="mt-1">{animal.sterilise ? 'Oui' : 'Non'}</p>
+                </div>
+                <div className="rounded-lg bg-neutral-50 p-3">
+                  <p className="text-sm font-medium text-neutral-500">Vacciné</p>
+                  <p className="mt-1">{animal.vaccinne ? 'Oui' : 'Non'}</p>
+                </div>
+                <div className="rounded-lg bg-neutral-50 p-3">
+                  <p className="text-sm font-medium text-neutral-500">Poids actuel</p>
+                  <p className="mt-1">{animal.poids || '—'} kg</p>
+                </div>
+              </div>
+              {animal.sante_notes && (
+                <div className="mt-4 rounded-lg bg-neutral-50 p-3">
+                  <p className="text-sm font-medium text-neutral-500">Notes santé</p>
+                  <p className="mt-1 text-sm text-neutral-900">{animal.sante_notes}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Historique des visites vétérinaires */}
+            <div className="card p-6">
+              <h3 className="mb-4 font-heading text-base font-semibold text-neutral-900">Historique des visites vétérinaires</h3>
+              {visites.length === 0 ? (
+                <EmptyState icon={Stethoscope} title="Aucune visite vétérinaire" />
+              ) : (
+                <div className="space-y-3">
+                  {visites.map((v) => (
+                    <div key={v.id} className="rounded-lg border border-neutral-200 p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="font-medium text-neutral-900">{v.motif}</p>
+                          <p className="mt-1 text-sm text-neutral-500">{formatDate(v.date_visite)}{v.veterinaire ? ` · ${v.veterinaire.nom}` : ''}</p>
+                          {v.diagnostic && <p className="mt-2 text-sm text-neutral-600"><strong>Diagnostic:</strong> {v.diagnostic}</p>}
+                          {v.traitement && <p className="text-sm text-neutral-600"><strong>Traitement:</strong> {v.traitement}</p>}
+                        </div>
+                        {v.cout != null && <Badge className="bg-error-50 text-error-700">{formatCurrency(v.cout)}</Badge>}
+                      </div>
+                      {v.prochaine_visite && (
+                        <div className="mt-2 flex items-center gap-2 text-sm text-warning-700">
+                          <Calendar size={14} /> Prochaine visite: {formatDate(v.prochaine_visite)}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Alertes traitements et rappels */}
+            <div className="card p-6">
+              <h3 className="mb-4 font-heading text-base font-semibold text-neutral-900">Alertes & Rappels</h3>
+              <div className="space-y-2">
+                {!animal.vaccinne && (
+                  <div className="flex items-center gap-2 rounded-lg bg-warning-50 p-3">
+                    <AlertTriangle size={16} className="text-warning-600" />
+                    <p className="text-sm text-warning-800">Vaccination à faire</p>
+                  </div>
+                )}
+                {!animal.sterilise && (
+                  <div className="flex items-center gap-2 rounded-lg bg-neutral-50 p-3">
+                    <AlertTriangle size={16} className="text-neutral-600" />
+                    <p className="text-sm text-neutral-800">Stérilisation non effectuée</p>
+                  </div>
+                )}
+                {visites.filter(v => v.prochaine_visite && new Date(v.prochaine_visite) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)).length > 0 && (
+                  <div className="flex items-center gap-2 rounded-lg bg-error-50 p-3">
+                    <AlertTriangle size={16} className="text-error-600" />
+                    <p className="text-sm text-error-800">Visite vétérinaire à venir sous 7 jours</p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
