@@ -141,7 +141,7 @@ const familleAccueilColumnMapping: Record<string, string> = {
 // Mapping par position de colonne pour le fichier Excel spécifique des FA
 const familleAccueilColumnPositionMapping: Record<number, string> = {
   0: 'profil_particulier', // Tags/spécificités (FA CHAT UNIQUEMENT, etc.)
-  1: 'departement', // N° département
+  1: 'numero_ligne', // Numéro de ligne
   2: 'statut_disponibilite', // Libre / Occupé
   3: 'animal_accueilli_actuel', // Animal actuel
   4: 'animal_eu', // Animal Eu
@@ -247,17 +247,20 @@ export function ImportPage() {
         const mapped: Record<string, string> = {};
         const entries = Object.entries(row);
         
-        entries.forEach(([key, value], colIndex) => {
-          const lowerKey = key.toLowerCase().trim();
-          let mappedKey = currentMapping[lowerKey] ?? lowerKey;
-          
-          // Pour les familles d'accueil, utiliser le mapping par position pour les colonnes tronquées
-          if (importType === 'familles_accueil' && familleAccueilColumnPositionMapping[colIndex]) {
-            mappedKey = familleAccueilColumnPositionMapping[colIndex];
-          }
-          
-          mapped[mappedKey] = String(value ?? '').trim();
-        });
+        // Pour les familles d'accueil, utiliser le mapping par position
+        if (importType === 'familles_accueil') {
+          entries.forEach(([key, value], colIndex) => {
+            const mappedKey = familleAccueilColumnPositionMapping[colIndex] ?? key.toLowerCase().trim();
+            mapped[mappedKey] = String(value ?? '').trim();
+          });
+        } else {
+          // Pour les animaux, utiliser le mapping par nom
+          entries.forEach(([key, value]) => {
+            const lowerKey = key.toLowerCase().trim();
+            const mappedKey = currentMapping[lowerKey] ?? lowerKey;
+            mapped[mappedKey] = String(value ?? '').trim();
+          });
+        }
 
         let valid = true;
         let rowError: string | undefined;
