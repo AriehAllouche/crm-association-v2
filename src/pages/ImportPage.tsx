@@ -8,12 +8,14 @@ import {
   Loader2,
   ArrowRight,
   Download,
+  Users,
+  Dog,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { supabase } from '../lib/supabase';
 import { PageHeader, Badge } from '../components/ui';
 import { especeLabels, animalStatutLabels } from '../lib/constants';
-import type { AnimalEspece, AnimalStatut, SanteStatut, AnimalSexe } from '../types';
+import type { AnimalEspece, AnimalStatut, SanteStatut, AnimalSexe, FamilleAccueil } from '../types';
 
 interface ImportResult {
   total: number;
@@ -75,6 +77,33 @@ const columnMapping: Record<string, string> = {
   photo_url: 'photo_url',
 };
 
+const familleAccueilColumnMapping: Record<string, string> = {
+  nom: 'nom',
+  name: 'nom',
+  prenom: 'prenom',
+  first_name: 'prenom',
+  telephone: 'telephone',
+  phone: 'telephone',
+  email: 'email',
+  adresse: 'adresse',
+  address: 'adresse',
+  code_postal: 'code_postal',
+  postal_code: 'code_postal',
+  ville: 'ville',
+  city: 'ville',
+  departement: 'departement',
+  department: 'departement',
+  capacite_max: 'capacite_max',
+  capacity: 'capacite_max',
+  materiel_confie: 'materiel_confie',
+  equipment: 'materiel_confie',
+  croquettes_fournies: 'croquettes_fournies',
+  food: 'croquettes_fournies',
+  notes: 'notes',
+  statut: 'statut',
+  status: 'statut',
+};
+
 const validEspeces = ['chien', 'chat', 'lapin', 'cheval', 'autre'];
 const validStatuts = [
   'signale', 'en_enquete', 'pris_en_charge', 'en_famille_accueil',
@@ -120,6 +149,7 @@ export function ImportPage() {
   const [fileName, setFileName] = useState('');
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [importType, setImportType] = useState<'animaux' | 'familles_accueil'>('animaux');
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -138,10 +168,12 @@ export function ImportPage() {
       const sheet = workbook.Sheets[sheetName];
       const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' });
 
+      const currentMapping = importType === 'animaux' ? columnMapping : familleAccueilColumnMapping;
+
       const previewRows: PreviewRow[] = rows.map((row, index) => {
         const mapped: Record<string, string> = {};
         for (const [key, value] of Object.entries(row)) {
-          const mappedKey = columnMapping[key.toLowerCase().trim()] ?? key.toLowerCase().trim();
+          const mappedKey = currentMapping[key.toLowerCase().trim()] ?? key.toLowerCase().trim();
           mapped[mappedKey] = String(value ?? '').trim();
         }
 
@@ -153,36 +185,45 @@ export function ImportPage() {
           rowError = 'Nom manquant';
         }
 
-        if (mapped.espece && !validEspeces.includes(mapped.espece.toLowerCase())) {
-          mapped.espece = normalizeValue(mapped.espece, validEspeces, 'autre');
-        }
-        if (!mapped.espece) mapped.espece = 'chien';
+        if (importType === 'animaux') {
+          if (mapped.espece && !validEspeces.includes(mapped.espece.toLowerCase())) {
+            mapped.espece = normalizeValue(mapped.espece, validEspeces, 'autre');
+          }
+          if (!mapped.espece) mapped.espece = 'chien';
 
-        if (mapped.statut && !validStatuts.includes(mapped.statut.toLowerCase())) {
-          mapped.statut = normalizeValue(mapped.statut, validStatuts, 'signale');
-        }
-        if (!mapped.statut) mapped.statut = 'signale';
+          if (mapped.statut && !validStatuts.includes(mapped.statut.toLowerCase())) {
+            mapped.statut = normalizeValue(mapped.statut, validStatuts, 'signale');
+          }
+          if (!mapped.statut) mapped.statut = 'signale';
 
-        if (mapped.sexe) {
-          mapped.sexe = normalizeValue(mapped.sexe, validSexes, 'inconnu');
-        }
+          if (mapped.sexe) {
+            mapped.sexe = normalizeValue(mapped.sexe, validSexes, 'inconnu');
+          }
 
-        if (mapped.sante_statut) {
-          mapped.sante_statut = normalizeValue(mapped.sante_statut, validSante, 'bon');
-        }
+          if (mapped.sante_statut) {
+            mapped.sante_statut = normalizeValue(mapped.sante_statut, validSante, 'bon');
+          }
 
-        if (mapped.date_naissance) {
-          mapped.date_naissance = parseDate(mapped.date_naissance);
-        }
-        if (mapped.date_prise_en_charge) {
-          mapped.date_prise_en_charge = parseDate(mapped.date_prise_en_charge);
-        }
+          if (mapped.date_naissance) {
+            mapped.date_naissance = parseDate(mapped.date_naissance);
+          }
+          if (mapped.date_prise_en_charge) {
+            mapped.date_prise_en_charge = parseDate(mapped.date_prise_en_charge);
+          }
 
-        if (mapped.sterilise) {
-          mapped.sterilise = parseBoolean(mapped.sterilise) ? 'true' : 'false';
-        }
-        if (mapped.vaccinne) {
-          mapped.vaccinne = parseBoolean(mapped.vaccinne) ? 'true' : 'false';
+          if (mapped.sterilise) {
+            mapped.sterilise = parseBoolean(mapped.sterilise) ? 'true' : 'false';
+          }
+          if (mapped.vaccinne) {
+            mapped.vaccinne = parseBoolean(mapped.vaccinne) ? 'true' : 'false';
+          }
+        } else {
+          // Validation pour familles d'accueil
+          if (mapped.capacite_max) {
+            mapped.capacite_max = String(parseInt(mapped.capacite_max) || 1);
+          } else {
+            mapped.capacite_max = '1';
+          }
         }
 
         return {
@@ -220,46 +261,77 @@ export function ImportPage() {
     const batchSize = 50;
     for (let i = 0; i < validRows.length; i += batchSize) {
       const batch = validRows.slice(i, i + batchSize);
-      const payload = batch.map((row) => ({
-        nom: row.data.nom,
-        espece: row.data.espece as AnimalEspece,
-        race: row.data.race || null,
-        sexe: (row.data.sexe || 'inconnu') as AnimalSexe,
-        date_naissance: row.data.date_naissance || null,
-        age_estime: row.data.age_estime || null,
-        couleur: row.data.couleur || null,
-        poids: row.data.poids || null,
-        taille: row.data.taille || null,
-        sterilise: row.data.sterilise === 'true',
-        vaccinne: row.data.vaccinne === 'true',
-        numero_icad: row.data.numero_icad || null,
-        numero_puce: row.data.numero_puce || null,
-        statut: row.data.statut as AnimalStatut,
-        description: row.data.description || null,
-        comportement: row.data.comportement || null,
-        sante_statut: (row.data.sante_statut || 'bon') as SanteStatut,
-        sante_notes: row.data.sante_notes || null,
-        photo_url: row.data.photo_url || null,
-        lieu_actuel: row.data.lieu_actuel || null,
-        date_prise_en_charge: row.data.date_prise_en_charge || null,
-      }));
 
-      const { data, error } = await supabase.from('animals').insert(payload).select('id');
-
-      if (error) {
-        results.errors.push({
-          row: i + 2,
-          message: error.message,
-        });
-      } else if (data) {
-        results.success += data.length;
-        const registreEntries = data.map((animal) => ({
-          animal_id: animal.id,
-          numero_entree: `ENT-${Date.now()}-${animal.id.slice(0, 4)}`,
-          type: 'entree' as const,
-          motif: 'Import depuis Excel',
+      if (importType === 'animaux') {
+        const payload = batch.map((row) => ({
+          nom: row.data.nom,
+          espece: row.data.espece as AnimalEspece,
+          race: row.data.race || null,
+          sexe: (row.data.sexe || 'inconnu') as AnimalSexe,
+          date_naissance: row.data.date_naissance || null,
+          age_estime: row.data.age_estime || null,
+          couleur: row.data.couleur || null,
+          poids: row.data.poids || null,
+          taille: row.data.taille || null,
+          sterilise: row.data.sterilise === 'true',
+          vaccinne: row.data.vaccinne === 'true',
+          numero_icad: row.data.numero_icad || null,
+          numero_puce: row.data.numero_puce || null,
+          statut: row.data.statut as AnimalStatut,
+          description: row.data.description || null,
+          comportement: row.data.comportement || null,
+          sante_statut: (row.data.sante_statut || 'bon') as SanteStatut,
+          sante_notes: row.data.sante_notes || null,
+          photo_url: row.data.photo_url || null,
+          lieu_actuel: row.data.lieu_actuel || null,
+          date_prise_en_charge: row.data.date_prise_en_charge || null,
         }));
-        await supabase.from('registre_entrees_sorties').insert(registreEntries);
+
+        const { data, error } = await supabase.from('animals').insert(payload).select('id');
+
+        if (error) {
+          results.errors.push({
+            row: i + 2,
+            message: error.message,
+          });
+        } else if (data) {
+          results.success += data.length;
+          const registreEntries = data.map((animal) => ({
+            animal_id: animal.id,
+            numero_entree: `ENT-${Date.now()}-${animal.id.slice(0, 4)}`,
+            type: 'entree' as const,
+            motif: 'Import depuis Excel',
+          }));
+          await supabase.from('registre_entrees_sorties').insert(registreEntries);
+        }
+      } else {
+        // Import familles d'accueil
+        const payload = batch.map((row) => ({
+          nom: row.data.nom,
+          prenom: row.data.prenom || null,
+          telephone: row.data.telephone || null,
+          email: row.data.email || null,
+          adresse: row.data.adresse || null,
+          code_postal: row.data.code_postal || null,
+          ville: row.data.ville || null,
+          departement: row.data.departement || null,
+          capacite_max: parseInt(row.data.capacite_max) || 1,
+          materiel_confie: row.data.materiel_confie || null,
+          croquettes_fournies: row.data.croquettes_fournies || null,
+          notes: row.data.notes || null,
+          statut: 'actif' as const,
+        }));
+
+        const { data, error } = await supabase.from('famille_accueils').insert(payload).select('id');
+
+        if (error) {
+          results.errors.push({
+            row: i + 2,
+            message: error.message,
+          });
+        } else if (data) {
+          results.success += data.length;
+        }
       }
     }
 
@@ -267,7 +339,7 @@ export function ImportPage() {
     setLoading(false);
 
     if (results.success > 0) {
-      setTimeout(() => navigate('/animaux'), 2000);
+      setTimeout(() => navigate(importType === 'animaux' ? '/animaux' : '/familles-accueil'), 2000);
     }
   };
 
@@ -308,7 +380,7 @@ export function ImportPage() {
     <div>
       <PageHeader
         title="Import Excel"
-        subtitle="Importez vos animaux depuis un fichier Excel (.xlsx, .xls, .csv)"
+        subtitle="Importez vos données depuis un fichier Excel (.xlsx, .xls, .csv)"
         action={
           <button onClick={downloadTemplate} className="btn-secondary">
             <Download size={18} />
@@ -316,6 +388,37 @@ export function ImportPage() {
           </button>
         }
       />
+
+      {/* Type d'import */}
+      <div className="card mb-6 p-4">
+        <div className="flex items-center gap-4">
+          <span className="text-sm font-medium text-neutral-700">Type d'import :</span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setImportType('animaux')}
+              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                importType === 'animaux'
+                  ? 'bg-primary-600 text-white'
+                  : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+              }`}
+            >
+              <Dog size={16} />
+              Animaux
+            </button>
+            <button
+              onClick={() => setImportType('familles_accueil')}
+              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                importType === 'familles_accueil'
+                  ? 'bg-primary-600 text-white'
+                  : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+              }`}
+            >
+              <Users size={16} />
+              Familles d'accueil
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Upload zone */}
       <div className="card mb-6 p-6">
@@ -389,7 +492,7 @@ export function ImportPage() {
                 Import terminé
               </p>
               <p className="text-sm text-neutral-500">
-                {importResult.success} animal{importResult.success > 1 ? 'ux' : ''} importé{importResult.success > 1 ? 's' : ''} sur {importResult.total}
+                {importResult.success} {importType === 'animaux' ? 'animal' : 'famille d\'accueil'}{importResult.success > 1 ? (importType === 'animaux' ? 'ux' : 's') : ''} importé{importResult.success > 1 ? 's' : ''} sur {importResult.total}
               </p>
             </div>
           </div>
@@ -430,7 +533,7 @@ export function ImportPage() {
               className="btn-primary"
             >
               {loading ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
-              Importer {preview.filter((r) => r.valid).length} animal{preview.filter((r) => r.valid).length > 1 ? 'ux' : ''}
+              Importer {preview.filter((r) => r.valid).length} {importType === 'animaux' ? 'animal' : 'famille d\'accueil'}{preview.filter((r) => r.valid).length > 1 ? (importType === 'animaux' ? 'ux' : 's') : ''}
             </button>
           </div>
           <div className="overflow-x-auto">
@@ -439,10 +542,21 @@ export function ImportPage() {
                 <tr className="border-b border-neutral-200 bg-neutral-50">
                   <th className="px-4 py-3 text-left font-medium text-neutral-600">Ligne</th>
                   <th className="px-4 py-3 text-left font-medium text-neutral-600">Nom</th>
-                  <th className="px-4 py-3 text-left font-medium text-neutral-600">Espèce</th>
-                  <th className="px-4 py-3 text-left font-medium text-neutral-600">Race</th>
-                  <th className="px-4 py-3 text-left font-medium text-neutral-600">Statut</th>
-                  <th className="px-4 py-3 text-left font-medium text-neutral-600">ICAD</th>
+                  {importType === 'animaux' ? (
+                    <>
+                      <th className="px-4 py-3 text-left font-medium text-neutral-600">Espèce</th>
+                      <th className="px-4 py-3 text-left font-medium text-neutral-600">Race</th>
+                      <th className="px-4 py-3 text-left font-medium text-neutral-600">Statut</th>
+                      <th className="px-4 py-3 text-left font-medium text-neutral-600">ICAD</th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="px-4 py-3 text-left font-medium text-neutral-600">Prénom</th>
+                      <th className="px-4 py-3 text-left font-medium text-neutral-600">Téléphone</th>
+                      <th className="px-4 py-3 text-left font-medium text-neutral-600">Ville</th>
+                      <th className="px-4 py-3 text-left font-medium text-neutral-600">Capacité</th>
+                    </>
+                  )}
                   <th className="px-4 py-3 text-left font-medium text-neutral-600">Statut</th>
                 </tr>
               </thead>
@@ -456,14 +570,25 @@ export function ImportPage() {
                     <td className="px-4 py-3 font-medium text-neutral-900">
                       {row.data.nom || '—'}
                     </td>
-                    <td className="px-4 py-3 text-neutral-600">
-                      {especeLabels[row.data.espece] || row.data.espece}
-                    </td>
-                    <td className="px-4 py-3 text-neutral-600">{row.data.race || '—'}</td>
-                    <td className="px-4 py-3 text-neutral-600">
-                      {animalStatutLabels[row.data.statut as AnimalStatut] || row.data.statut}
-                    </td>
-                    <td className="px-4 py-3 text-neutral-600">{row.data.numero_icad || '—'}</td>
+                    {importType === 'animaux' ? (
+                      <>
+                        <td className="px-4 py-3 text-neutral-600">
+                          {especeLabels[row.data.espece] || row.data.espece}
+                        </td>
+                        <td className="px-4 py-3 text-neutral-600">{row.data.race || '—'}</td>
+                        <td className="px-4 py-3 text-neutral-600">
+                          {animalStatutLabels[row.data.statut as AnimalStatut] || row.data.statut}
+                        </td>
+                        <td className="px-4 py-3 text-neutral-600">{row.data.numero_icad || '—'}</td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="px-4 py-3 text-neutral-600">{row.data.prenom || '—'}</td>
+                        <td className="px-4 py-3 text-neutral-600">{row.data.telephone || '—'}</td>
+                        <td className="px-4 py-3 text-neutral-600">{row.data.ville || '—'}</td>
+                        <td className="px-4 py-3 text-neutral-600">{row.data.capacite_max || '1'}</td>
+                      </>
+                    )}
                     <td className="px-4 py-3">
                       {row.valid ? (
                         <Badge className="bg-success-100 text-success-700">OK</Badge>
@@ -494,17 +619,33 @@ export function ImportPage() {
           Les colonnes suivantes sont automatiquement détectées (insensible à la casse) :
         </p>
         <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3 lg:grid-cols-4">
-          {[
-            'nom', 'espece (chien/chat/lapin/cheval/autre)', 'race', 'sexe (male/femelle/inconnu)',
-            'date_naissance', 'age_estime', 'couleur', 'poids', 'taille',
-            'sterilise (oui/non)', 'vaccinne (oui/non)', 'numero_icad', 'numero_puce',
-            'statut', 'description', 'comportement', 'sante_statut (bon/moyen/grave/critique)',
-            'sante_notes', 'lieu_actuel', 'date_prise_en_charge', 'photo_url',
-          ].map((col) => (
-            <div key={col} className="rounded-lg bg-neutral-50 px-3 py-1.5 text-xs text-neutral-600">
-              {col}
-            </div>
-          ))}
+          {importType === 'animaux' ? (
+            <>
+              {[
+                'nom', 'espece (chien/chat/lapin/cheval/autre)', 'race', 'sexe (male/femelle/inconnu)',
+                'date_naissance', 'age_estime', 'couleur', 'poids', 'taille',
+                'sterilise (oui/non)', 'vaccinne (oui/non)', 'numero_icad', 'numero_puce',
+                'statut', 'description', 'comportement', 'sante_statut (bon/moyen/grave/critique)',
+                'sante_notes', 'lieu_actuel', 'date_prise_en_charge', 'photo_url',
+              ].map((col) => (
+                <div key={col} className="rounded-lg bg-neutral-50 px-3 py-1.5 text-xs text-neutral-600">
+                  {col}
+                </div>
+              ))}
+            </>
+          ) : (
+            <>
+              {[
+                'nom', 'prenom', 'telephone', 'email', 'adresse',
+                'code_postal', 'ville', 'departement', 'capacite_max',
+                'materiel_confie', 'croquettes_fournies', 'notes', 'statut',
+              ].map((col) => (
+                <div key={col} className="rounded-lg bg-neutral-50 px-3 py-1.5 text-xs text-neutral-600">
+                  {col}
+                </div>
+              ))}
+            </>
+          )}
         </div>
       </div>
     </div>
