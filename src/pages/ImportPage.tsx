@@ -105,30 +105,28 @@ const familleAccueilColumnMapping: Record<string, string> = {
   statut: 'statut',
   status: 'statut',
   
-  // Colonnes de préférences
+  // Colonnes de préférences (noms tronqués dans Excel)
   'quel animal pouvez-vous accueillir': 'especes_acceptees',
-  'pouvez-vous accueillir suivant l\'urgence 2 animaux': 'urgence_2_animaux',
+  'pouvez-vous accueillir suivant l\'urgence 2 ani...': 'urgence_2_animaux',
   'durée de l\'accueil': 'duree_accueil',
   
-  // Colonnes de contexte familial
+  // Colonnes de contexte familial (noms tronqués dans Excel)
   'combien d\'adultes vivent dans votre foyer ?': 'nombre_adultes',
-  'combien d\'enfants vivent avec vous ? merci d\'indiquer les âges': 'nombre_enfants',
-  'les membres de la famille sont-ils tous d\'accord pour accueillir un animal en fa ?': 'famille_daccord',
-  'l\'un des membres de la famille souffre-t-il d\'asthme, d\'allergies ou de maladie pouvant être due au contact avec les animaux ?': 'allergies',
+  'combien d\'enfants vivent avec vous ? merci d\'i...': 'nombre_enfants',
+  'les membres de la famille sont-ils tous d\'acco...': 'famille_daccord',
+  'l\'un des membres de la famille souffre-t-il d\'...': 'allergies',
   'vivez-vous en appartement ou maison ?': 'type_logement',
   'superficie :': 'superficie',
-  'l\' animal sera-t-il en présence d\'autres animaux ?': 'autres_animaux',
+  'l\' animal sera-t-il en présence d\'autres anima...': 'autres_animaux',
   'si oui lesquels :': 'types_autres_animaux',
-  'avez-vous la possibilité de les isoler les uns des autres ?': 'peut_isoler',
+  'avez-vous la possibilité de les isoler les uns...': 'peut_isoler',
   
-  // Colonnes de contraintes
-  'possédez-vous l\'attestation d\'aptitude à détenir un chien catégorisé ?': 'attestation_categorise',
-  'pensez-vous avoir la patience nécessaire à l\'éducation d\'un chiot ou d\'un chaton ?': 'patience_chiot_chaton',
-  'pensez-vous avoir la patience nécessaire à l\'éducation d\'un animal adulte qui a souffert d\'abandon ou de maltraitance et qui n\'a jamais connu la vie de famille ?': 'patience_adulte_traumatise',
+  // Colonnes de contraintes (noms tronqués dans Excel)
+  'possédez-vous l\'attestation d\'aptitude à déten...': 'attestation_categorise',
   'l\'animal restera-t-il seul dans la journée ?': 'animal_reste_seul',
   'si oui, combien de temps ?': 'temps_seul',
   'etes-vous véhiculée ?': 'vehiculee',
-  'pouvez-vous vous déplacer pour aller récupérer l\'animal ou pour vous rendre chez le vétérinaire ?': 'peut_se_deplacer',
+  'pouvez-vous vous déplacer pour aller récupérer...': 'peut_se_deplacer',
   
   // Autres colonnes
   'n° département': 'departement',
@@ -138,6 +136,12 @@ const familleAccueilColumnMapping: Record<string, string> = {
   'date de naissance': 'date_naissance',
   'pseudo facebook': 'pseudo_facebook',
   'compléments d\'informations': 'notes',
+};
+
+// Mapping par position de colonne pour les colonnes tronquées
+const familleAccueilColumnPositionMapping: Record<number, string> = {
+  28: 'patience_chiot_chaton', // Pensez-vous avoir la patience nécessaire à l'é... (chiot/chaton)
+  29: 'patience_adulte_traumatise', // Pensez-vous avoir la patience nécessaire à l'é... (adulte traumatisé)
 };
 
 const validEspeces = ['chien', 'chat', 'lapin', 'cheval', 'autre'];
@@ -208,10 +212,19 @@ export function ImportPage() {
 
       const previewRows: PreviewRow[] = rows.map((row, index) => {
         const mapped: Record<string, string> = {};
-        for (const [key, value] of Object.entries(row)) {
-          const mappedKey = currentMapping[key.toLowerCase().trim()] ?? key.toLowerCase().trim();
+        const entries = Object.entries(row);
+        
+        entries.forEach(([key, value], colIndex) => {
+          const lowerKey = key.toLowerCase().trim();
+          let mappedKey = currentMapping[lowerKey] ?? lowerKey;
+          
+          // Pour les familles d'accueil, utiliser le mapping par position pour les colonnes tronquées
+          if (importType === 'familles_accueil' && familleAccueilColumnPositionMapping[colIndex]) {
+            mappedKey = familleAccueilColumnPositionMapping[colIndex];
+          }
+          
           mapped[mappedKey] = String(value ?? '').trim();
-        }
+        });
 
         let valid = true;
         let rowError: string | undefined;
