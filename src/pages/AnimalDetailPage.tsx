@@ -175,6 +175,12 @@ export function AnimalDetailPage() {
               </div>
               <div className="flex items-center gap-2">
                 <Badge className={animalStatutColors[animal.statut]}>{animalStatutLabels[animal.statut]}</Badge>
+                {animal.sante_statut && (
+                  <Badge className={santeStatutColors[animal.sante_statut]}>
+                    <AlertTriangle size={12} className="mr-1" />
+                    {santeStatutLabels[animal.sante_statut]}
+                  </Badge>
+                )}
                 <button
                   onClick={() => {
                     const annonce = `🐕 ${animal.nom} à l'adoption !\n\n${especeLabels[animal.espece]}${animal.race ? ` · ${animal.race}` : ''}${animal.couleur ? ` · ${animal.couleur}` : ''}\n${animal.sexe === 'male' ? 'Mâle' : animal.sexe === 'femelle' ? 'Femelle' : ''}${animal.date_naissance ? ` · Né le ${formatDate(animal.date_naissance)}` : ''}\n\n${animal.description || 'Ce charmant animal cherche une famille aimante.'}\n\nContactez-nous pour plus d'informations !`;
@@ -210,7 +216,6 @@ export function AnimalDetailPage() {
               {animal.lieu_actuel && <span className="flex items-center gap-1"><MapPin size={14} /> {animal.lieu_actuel}</span>}
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
-              <Badge className={santeStatutColors[animal.sante_statut]}>Santé: {santeStatutLabels[animal.sante_statut]}</Badge>
               {animal.sterilise && <Badge className="bg-success-100 text-success-700">Stérilisé</Badge>}
               {animal.vaccinne && <Badge className="bg-secondary-100 text-secondary-700"><Syringe size={12} className="mr-1" />Vacciné</Badge>}
               {animal.icad_done && <Badge className="bg-info-100 text-info-700">ICAD fait</Badge>}
@@ -222,21 +227,42 @@ export function AnimalDetailPage() {
               {animal.reserve && <Badge className="bg-info-100 text-info-700">Réservé</Badge>}
               {animal.remis_proprietaire && <Badge className="bg-success-100 text-success-700">Remis propriétaire</Badge>}
               <Badge className="bg-error-50 text-error-700"><Euro size={12} className="mr-1" />{formatCurrency(cout_total)}</Badge>
-              {alerts.length > 0 && <Badge className="bg-warning-100 text-warning-800"><AlertTriangle size={12} className="mr-1" />{alerts.length} alerte{alerts.length > 1 ? 's' : ''}</Badge>}
               {justice.length > 0 && <Badge className="bg-neutral-100 text-neutral-700">Justice</Badge>}
               {faActive.length > 0 && <Badge className="bg-success-100 text-success-700"><Home size={12} className="mr-1" />FA: {faActive[0].famille_accueil?.nom}</Badge>}
             </div>
+            <div className="mt-3 grid grid-cols-2 gap-4 rounded-lg bg-neutral-50 p-3 text-xs sm:grid-cols-4">
+              <div>
+                <p className="font-medium text-neutral-500">Statut juridique</p>
+                <p className="text-neutral-900">{justice.length > 0 ? 'Dossier en cours' : 'Aucun dossier'}</p>
+              </div>
+              <div>
+                <p className="font-medium text-neutral-500">Responsable</p>
+                <p className="text-neutral-900">{animal.agent || 'Non assigné'}</p>
+              </div>
+              <div>
+                <p className="font-medium text-neutral-500">Prochaine échéance</p>
+                <p className="text-neutral-900">
+                  {visites.length > 0 && visites[0].prochaine_visite 
+                    ? formatDate(visites[0].prochaine_visite)
+                    : alerts.length > 0 
+                      ? formatDate(alerts[0].date_echeance)
+                      : 'Aucune'
+                  }
+                </p>
+              </div>
+              <div>
+                <p className="font-medium text-neutral-500">Coût total</p>
+                <p className="text-neutral-900">{formatCurrency(cout_total)}</p>
+              </div>
+            </div>
             <div className="mt-3 flex flex-wrap gap-4 text-xs text-neutral-500">
-              <span>Statut juridique: {justice.length > 0 ? 'Dossier en cours' : 'Aucun dossier'}</span>
-              <span>Coût total: {formatCurrency(cout_total)}</span>
-              <span>Alertes: {alerts.length}</span>
               {animal.date_pec && (
                 <span>Durée PEC: {Math.floor((new Date().getTime() - new Date(animal.date_pec).getTime()) / (1000 * 60 * 60 * 24))} jours</span>
               )}
               {animal.date_pec && cout_total > 0 && (
                 <span>Coût moyen/jour: {formatCurrency(cout_total / Math.max(1, Math.floor((new Date().getTime() - new Date(animal.date_pec).getTime()) / (1000 * 60 * 60 * 24))))}</span>
               )}
-              {visites.length > 0 && visites[0].prochaine_visite && <span className="flex items-center gap-1"><Calendar size={12} /> Prochaine visite: {formatDate(visites[0].prochaine_visite)}</span>}
+              {alerts.length > 0 && <span className="flex items-center gap-1 text-warning-600"><AlertTriangle size={12} />{alerts.length} alerte{alerts.length > 1 ? 's' : ''}</span>}
             </div>
           </div>
         </div>
