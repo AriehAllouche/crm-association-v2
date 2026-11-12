@@ -313,24 +313,25 @@ export function ImportPage() {
 
       const previewRows: PreviewRow[] = rows.map((row, index) => {
         const mapped: Record<string, string> = {};
-        const entries = Object.entries(row);
         
         // Pour les familles d'accueil, utiliser le mapping exact par position
         if (importType === 'familles_accueil') {
-          entries.forEach(([key, value], colIndex) => {
+          // Convertir la ligne en tableau ordonné pour garantir l'ordre des colonnes
+          const rowValues = Object.values(row);
+          rowValues.forEach((value, colIndex) => {
             // Essayer d'abord le mapping par position exacte
             let mappedKey = familleAccueilColumnMappingExact[colIndex];
             
-            // Si pas trouvé, essayer le fuzzy matching par nom
+            // Si pas trouvé, utiliser le nom de colonne par défaut
             if (!mappedKey) {
-              const lowerKey = key.toLowerCase().trim();
-              mappedKey = familleAccueilColumnMappingFuzzy[lowerKey] ?? lowerKey;
+              mappedKey = `col_${colIndex}`;
             }
             
             mapped[mappedKey] = String(value ?? '').trim();
           });
         } else {
           // Pour les animaux, utiliser le mapping par nom
+          const entries = Object.entries(row);
           entries.forEach(([key, value]) => {
             const lowerKey = key.toLowerCase().trim();
             const mappedKey = currentMapping[lowerKey] ?? lowerKey;
@@ -475,10 +476,12 @@ export function ImportPage() {
           }
           
           // Parser les notes structurées pour extraire des informations supplémentaires
+          // SEULEMENT si les champs sont vides (priorité aux colonnes Excel)
           if (mapped.remarques_et_notes_libres) {
             const parsedNotes = parseFamilleAccueilNotes(mapped.remarques_et_notes_libres);
             
             // Mapper les informations extraites vers les champs appropriés
+            // SEULEMENT si le champ est vide
             if (parsedNotes.statut_terrain && !mapped.statut_disponibilite) {
               mapped.statut_disponibilite = parsedNotes.statut_terrain.toLowerCase().includes('libre') ? 'libre' : 'occupee';
             }
