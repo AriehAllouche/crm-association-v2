@@ -39,6 +39,117 @@ export const animalStatutColors: Record<AnimalStatut, string> = {
   archive: 'bg-neutral-100 text-neutral-500',
 };
 
+export const originePecLabels: Record<string, string> = {
+  animal_errant: 'Animal errant',
+  abandon: 'Abandon',
+  police: 'Police',
+  gendarmerie: 'Gendarmerie',
+  fourriere: 'Fourrière',
+  requisition_judiciaire: 'Réquisition judiciaire',
+  autre: 'Autre',
+};
+
+export const icadDemandeStatutLabels: Record<string, string> = {
+  a_effectuer: 'À effectuer',
+  envoyee: 'Envoyée',
+  en_attente: 'En attente',
+  validee: 'Validée',
+};
+
+export const icadDemandeStatutColors: Record<string, string> = {
+  a_effectuer: 'bg-neutral-100 text-neutral-600',
+  envoyee: 'bg-primary-100 text-primary-700',
+  en_attente: 'bg-warning-100 text-warning-800',
+  validee: 'bg-success-100 text-success-700',
+};
+
+export const icadModeEnvoiLabels: Record<string, string> = {
+  courrier: 'Courrier',
+  email: 'Email',
+  main_propre: 'Remise en main propre',
+  autre: 'Autre',
+};
+
+/** Suggestions de vaccins par espèce (liste non exhaustive, saisie libre possible). */
+export const vaccinsSuggestions: Record<string, string[]> = {
+  chien: ['DHPPi (Carré, hépatite, parvovirose, leptospirose, trachéobronchite)', 'Rage', 'Leuco (leucoses)', 'Pneumonie (bordetelle)', 'Typhus'],
+  chat: ['FVRCP (coryza, calicivirose, panleucopénie)', 'Rage', 'FeLV (leucémie féline)', 'Pneumonie (bordetelle)'],
+};
+
+export const vaccinationTypeInjectionLabels: Record<string, string> = {
+  primo: 'Primo-vaccination',
+  rappel: 'Rappel',
+  complement: 'Complément',
+};
+
+export const santeSoinTypeLabels: Record<string, string> = {
+  vermifuge: 'Vermifuge',
+  antiparasitaire: 'Antiparasitaire',
+  sterilisation: 'Stérilisation',
+  diagnose_morphologique: 'Diagnose morphologique',
+};
+
+export const santeSoinTypeColors: Record<string, string> = {
+  vermifuge: 'bg-warning-100 text-warning-800',
+  antiparasitaire: 'bg-accent-100 text-accent-800',
+  sterilisation: 'bg-secondary-100 text-secondary-700',
+  diagnose_morphologique: 'bg-primary-100 text-primary-700',
+};
+
+export const enqueteActionTypeLabels: Record<string, string> = {
+  visite: 'Visite',
+  intervention: 'Intervention',
+  demarche: 'Démarche',
+  decision: 'Décision',
+  autre: 'Autre',
+};
+
+export const enqueteActionStatutLabels: Record<string, string> = {
+  planifie: 'Planifié',
+  realise: 'Réalisé',
+  en_attente: 'En attente',
+};
+
+export const enqueteActionStatutColors: Record<string, string> = {
+  planifie: 'bg-primary-100 text-primary-700',
+  realise: 'bg-success-100 text-success-700',
+  en_attente: 'bg-warning-100 text-warning-800',
+};
+
+export const signalementAnimalRoleLabels: Record<string, string> = {
+  signale: 'Signalé',
+  pris_en_charge: 'Pris en charge',
+  autre: 'Autre',
+};
+
+export const observationTypeLabels: Record<string, string> = {
+  arrivee: 'État à l\'arrivée',
+  sante: 'Santé',
+  comportement: 'Comportement',
+  autre: 'Autre',
+};
+
+export const observationTypeColors: Record<string, string> = {
+  arrivee: 'bg-warning-100 text-warning-800',
+  sante: 'bg-primary-100 text-primary-700',
+  comportement: 'bg-secondary-100 text-secondary-700',
+  autre: 'bg-neutral-100 text-neutral-600',
+};
+
+export const morsureRisqueLabels: Record<number, string> = {
+  1: 'Risque 1 — Faible',
+  2: 'Risque 2 — Modéré',
+  3: 'Risque 3 — Élevé',
+  4: 'Risque 4 — Très élevé',
+};
+
+export const morsureRisqueColors: Record<number, string> = {
+  1: 'bg-success-100 text-success-700',
+  2: 'bg-warning-100 text-warning-800',
+  3: 'bg-error-100 text-error-700',
+  4: 'bg-error-600 text-white',
+};
+
 export const signalementStatutLabels: Record<SignalementStatut, string> = {
   nouveau: 'Nouveau',
   en_cours: 'En cours',

@@ -33,6 +33,7 @@ export interface TimelineEvent {
   type: string;
   title: string;
   description?: string;
+  details?: Record<string, any>;
 }
 
 export interface StatusHistoryEvent {
@@ -92,7 +93,8 @@ async function fetchAnimalDetailsFallback(animalId: string): Promise<AnimalDetai
   const [
     animalRes, signalementRes, adoptionsRes, visitesRes,
     justiceRes, sejoursRes, transportsRes, documentsRes,
-    depensesRes, commsRes, registreRes, faRes, alertsRes, statusHistoryRes
+    depensesRes, commsRes, registreRes, faRes, alertsRes, statusHistoryRes,
+    timelineRes
   ] = await Promise.all([
     supabase.from('animals').select('*').eq('id', animalId).maybeSingle(),
     supabase.from('signalements').select('*').eq('animal_id', animalId).maybeSingle(),
@@ -108,6 +110,7 @@ async function fetchAnimalDetailsFallback(animalId: string): Promise<AnimalDetai
     supabase.from('famille_accueil_animaux').select('*, famille_accueil:famille_accueils(*)').eq('animal_id', animalId).order('date_debut', { ascending: false }),
     supabase.from('alerts').select('*').eq('animal_id', animalId).eq('statut', 'active').order('date_echeance'),
     supabase.from('animal_status_history').select('*').eq('animal_id', animalId).order('date_changement', { ascending: false }),
+    supabase.from('timeline').select('*').eq('animal_id', animalId).order('created_at', { ascending: false }),
   ]);
 
   if (animalRes.error || !animalRes.data) {
@@ -119,39 +122,104 @@ async function fetchAnimalDetailsFallback(animalId: string): Promise<AnimalDetai
     + (sejoursRes.data ?? []).reduce((sum: number, s: any) => sum + (s.cout_total ?? 0), 0)
     + (transportsRes.data ?? []).reduce((sum: number, t: any) => sum + (t.cout ?? 0), 0);
 
-  const timeline: TimelineEvent[] = [];
-  for (const r of registreRes.data ?? []) {
-    timeline.push({ date: r.date, type: 'registre', title: r.type === 'entree' ? 'Entrée au registre' : 'Sortie du registre', description: r.motif });
-  }
-  for (const s of signalementRes.data ?? []) {
-    timeline.push({ date: s.date_signalement, type: 'signalement', title: 'Signalement', description: s.motif });
-  }
-  for (const v of visitesRes.data ?? []) {
-    timeline.push({ date: v.date_visite, type: 'veterinaire', title: 'Visite vétérinaire', description: `${v.motif}${v.veterinaire ? ' — ' + v.veterinaire.nom : ''}` });
-  }
-  for (const f of faRes.data ?? []) {
-    timeline.push({ date: f.date_debut, type: 'famille_accueil', title: 'Placement en famille d\'accueil', description: f.famille_accueil?.nom });
-    if (f.date_fin) {
-      timeline.push({ date: f.date_fin, type: 'famille_accueil_fin', title: 'Fin de placement FA', description: f.famille_accueil?.nom });
+  // Source de vérité : la table `timeline` (remplie par les triggers SQL
+  // et le backfill). Si elle est vide ou indisponible (migration non
+  // encore appliquée), on retombe sur l'agrégation des tables sources.
+  const timelineRows = (timelineRes.data ?? []) as any[];
+
+  let timeline: TimelineEvent[];
+  if (timelineRows.length > 0) {
+    const actionTypeToDisplay: Record<string, string> = {
+      statut_change: 'statut_change',
+      veterinaire_visite: 'veterinaire',
+      transport: 'transport',
+      famille_accueil: 'famille_accueil',
+      adoption: 'adoption',
+      justice: 'justice',
+      pension: 'pension',
+      signalement: 'signalement',
+      document: 'document',
+      depense: 'depense',
+      communication: 'communication',
+      registre: 'registre',
+      icad: 'icad',
+      vaccination: 'vaccination',
+      sante_soin: 'sante_soin',
+      alerte: 'autre',
+      autre: 'autre',
+    };
+    // Clés de date métier présentes dans metadata selon le type d'action
+    const metadataDateKeys = [
+      'date_visite', 'date_transport', 'date_debut', 'date_fin',
+      'date_candidature', 'date_entree', 'date_sortie',
+      'date_injection', 'date_prochain_rappel', 'date_soin', 'prochain_traitement',
+      'date_depense', 'date_publication', 'date_changement',
+      'date_signalement', 'date_envoi_demande', 'date_transfert_epa', 'date',
+    ];
+
+    timeline = timelineRows.map((row) => {
+      const meta = (row.metadata ?? {}) as Record<string, any>;
+      let type = actionTypeToDisplay[row.action_type] ?? 'autre';
+      // Raffiner le type d'affichage selon le contenu
+      if (row.action_type === 'famille_accueil' && /fin\s+(de\s+)?placement/i.test(row.description ?? '')) {
+        type = 'famille_accueil_fin';
+      }
+      if (row.action_type === 'pension' && /sortie/i.test(row.description ?? '')) {
+        type = 'pension_sortie';
+      }
+      if (row.action_type === 'justice' && meta.date_audience) {
+        type = 'justice_audience';
+      }
+      const metaDate = metadataDateKeys.map((k) => meta[k]).find((v) => v != null);
+      return {
+        date: metaDate ?? row.created_at,
+        type,
+        title: row.description ?? 'Événement',
+        description: meta.details ?? meta.motif ?? undefined,
+        details: meta,
+      };
+    });
+  } else {
+    timeline = [];
+    for (const r of registreRes.data ?? []) {
+      timeline.push({ date: r.date, type: 'registre', title: r.type === 'entree' ? 'Entrée au registre' : 'Sortie du registre', description: r.motif });
     }
-  }
-  for (const s of sejoursRes.data ?? []) {
-    timeline.push({ date: s.date_entree, type: 'pension', title: 'Entrée en pension', description: s.pension?.nom });
-  }
-  for (const t of transportsRes.data ?? []) {
-    timeline.push({ date: t.date_transport, type: 'transport', title: 'Transport', description: `${t.lieu_depart ?? '?'} → ${t.lieu_arrivee ?? '?'}` });
-  }
-  for (const a of adoptionsRes.data ?? []) {
-    timeline.push({ date: a.date_candidature, type: 'adoption', title: 'Candidature d\'adoption', description: a.adoptant_nom });
-  }
-  for (const j of justiceRes.data ?? []) {
-    timeline.push({ date: j.created_at, type: 'justice', title: 'Dossier judiciaire', description: j.numero_parquet });
-  }
-  for (const c of commsRes.data ?? []) {
-    timeline.push({ date: c.date_publication, type: 'communication', title: c.titre || c.type, description: c.canal });
-  }
-  for (const d of depensesRes.data ?? []) {
-    timeline.push({ date: d.date_depense, type: 'depense', title: 'Dépense', description: `${d.description} — ${d.montant}€` });
+    for (const s of signalementRes.data ?? []) {
+      timeline.push({ date: s.date_signalement, type: 'signalement', title: 'Signalement', description: s.motif });
+    }
+    for (const v of visitesRes.data ?? []) {
+      timeline.push({ date: v.date_visite, type: 'veterinaire', title: 'Visite vétérinaire', description: `${v.motif}${v.veterinaire ? ' — ' + v.veterinaire.nom : ''}` });
+    }
+    for (const f of faRes.data ?? []) {
+      timeline.push({ date: f.date_debut, type: 'famille_accueil', title: 'Placement en famille d\'accueil', description: f.famille_accueil?.nom });
+      if (f.date_fin) {
+        timeline.push({ date: f.date_fin, type: 'famille_accueil_fin', title: 'Fin de placement FA', description: f.famille_accueil?.nom });
+      }
+    }
+    for (const s of sejoursRes.data ?? []) {
+      timeline.push({ date: s.date_entree, type: 'pension', title: 'Entrée en pension', description: s.pension?.nom });
+      if (s.date_sortie) {
+        timeline.push({ date: s.date_sortie, type: 'pension_sortie', title: 'Sortie pension', description: s.pension?.nom });
+      }
+    }
+    for (const t of transportsRes.data ?? []) {
+      timeline.push({ date: t.date_transport, type: 'transport', title: 'Transport', description: `${t.lieu_depart ?? '?'} → ${t.lieu_arrivee ?? '?'}` });
+    }
+    for (const a of adoptionsRes.data ?? []) {
+      timeline.push({ date: a.date_candidature, type: 'adoption', title: 'Candidature d\'adoption', description: a.adoptant_nom });
+    }
+    for (const j of justiceRes.data ?? []) {
+      timeline.push({ date: j.created_at, type: 'justice', title: 'Dossier judiciaire', description: j.numero_parquet });
+    }
+    for (const c of commsRes.data ?? []) {
+      timeline.push({ date: c.date_publication, type: 'communication', title: c.titre || c.type, description: c.canal });
+    }
+    for (const d of depensesRes.data ?? []) {
+      timeline.push({ date: d.date_depense, type: 'depense', title: 'Dépense', description: `${d.description} — ${d.montant}€` });
+    }
+    for (const h of statusHistoryRes.data ?? []) {
+      timeline.push({ date: h.date_changement, type: 'statut_change', title: `Changement de statut: ${h.ancien_statut} → ${h.nouveau_statut}`, description: h.raison });
+    }
   }
   // Les types d'événements reprennent les clés de module ('justice',
   // 'pension'...): ceux reportés en V2 sont masqués, leurs onglets et leurs

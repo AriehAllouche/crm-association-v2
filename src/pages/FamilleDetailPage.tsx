@@ -57,6 +57,21 @@ export function FamilleDetailPage() {
   const [showEvaluationModal, setShowEvaluationModal] = useState(false);
   const [showSuiviModal, setShowSuiviModal] = useState(false);
   const [showValidationModal, setShowValidationModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({
+    nom: '',
+    prenom: '',
+    telephone: '',
+    email: '',
+    adresse: '',
+    code_postal: '',
+    ville: '',
+    departement: '',
+    capacite_max: 1,
+    materiel_confie: '',
+    croquettes_fournies: '',
+    notes: '',
+  });
   const [newEvaluation, setNewEvaluation] = useState({
     note_communication: 5,
     note_respect_consignes: 5,
@@ -95,8 +110,43 @@ export function FamilleDetailPage() {
       console.error('Error fetching famille:', error);
     } else {
       setFamille(data as FamilleAccueil);
+      // Initialiser le formulaire d'édition avec les données actuelles
+      setEditForm({
+        nom: data.nom || '',
+        prenom: data.prenom || '',
+        telephone: data.telephone || '',
+        email: data.email || '',
+        adresse: data.adresse || '',
+        code_postal: data.code_postal || '',
+        ville: data.ville || '',
+        departement: data.departement || '',
+        capacite_max: data.capacite_max || 1,
+        materiel_confie: data.materiel_confie || '',
+        croquettes_fournies: data.croquettes_fournies || '',
+        notes: data.notes || '',
+      });
     }
     setLoading(false);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!famille) return;
+
+    const { error } = await supabase
+      .from('famille_accueils')
+      .update({
+        ...editForm,
+        capacite_max: Number(editForm.capacite_max) || 1,
+      })
+      .eq('id', famille.id);
+
+    if (error) {
+      alert('Erreur lors de la mise à jour');
+    } else {
+      setShowEditModal(false);
+      fetchFamille();
+    }
   };
 
   const fetchAnimals = async () => {
@@ -257,6 +307,9 @@ export function FamilleDetailPage() {
             </p>
           </div>
           <div className="flex gap-2">
+            <button onClick={() => setShowEditModal(true)} className="btn-ghost">
+              <Edit size={16} /> Modifier
+            </button>
             <button onClick={() => setShowEvaluationModal(true)} className="btn-ghost">
               <Star size={16} /> Évaluer
             </button>
@@ -359,29 +412,127 @@ export function FamilleDetailPage() {
 
         {/* CAPACITÉS & SPÉCIALITÉS */}
         {activeTab === 'capacites' && (
-          <div className="card p-6">
-            <h2 className="mb-4 font-heading text-lg font-semibold text-neutral-900">Capacités & Spécialités</h2>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="rounded-lg bg-neutral-50 p-4">
-                <p className="text-sm font-medium text-neutral-500">Capacité d'accueil</p>
-                <p className="mt-1 text-lg font-semibold text-neutral-900">{famille.capacite_max} animaux</p>
+          <div className="space-y-4">
+            <div className="card p-6">
+              <h2 className="mb-4 font-heading text-lg font-semibold text-neutral-900">Capacités & Spécialités</h2>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="rounded-lg bg-neutral-50 p-4">
+                  <p className="text-sm font-medium text-neutral-500">Capacité d'accueil</p>
+                  <p className="mt-1 text-lg font-semibold text-neutral-900">{famille.capacite_max} animaux</p>
+                </div>
+                <div className="rounded-lg bg-neutral-50 p-4">
+                  <p className="text-sm font-medium text-neutral-500">Animaux actuels</p>
+                  <p className="mt-1 text-lg font-semibold text-neutral-900">{famille.animaux_actuels}</p>
+                </div>
+                <div className="rounded-lg bg-neutral-50 p-4">
+                  <p className="text-sm font-medium text-neutral-500">Matériel confié</p>
+                  <p className="mt-1 text-neutral-900">{famille.materiel_confie || '—'}</p>
+                </div>
+                <div className="rounded-lg bg-neutral-50 p-4">
+                  <p className="text-sm font-medium text-neutral-500">Croquettes fournies</p>
+                  <p className="mt-1 text-neutral-900">{famille.croquettes_fournies || '—'}</p>
+                </div>
               </div>
-              <div className="rounded-lg bg-neutral-50 p-4">
-                <p className="text-sm font-medium text-neutral-500">Animaux actuels</p>
-                <p className="mt-1 text-lg font-semibold text-neutral-900">{famille.animaux_actuels}</p>
-              </div>
-              <div className="rounded-lg bg-neutral-50 p-4">
-                <p className="text-sm font-medium text-neutral-500">Matériel confié</p>
-                <p className="mt-1 text-neutral-900">{famille.materiel_confie || '—'}</p>
-              </div>
-              <div className="rounded-lg bg-neutral-50 p-4">
-                <p className="text-sm font-medium text-neutral-500">Croquettes fournies</p>
-                <p className="mt-1 text-neutral-900">{famille.croquettes_fournies || '—'}</p>
+              {famille.specialites && famille.specialites.length > 0 && (
+                <div className="mt-4 rounded-lg bg-neutral-50 p-4">
+                  <p className="text-sm font-medium text-neutral-500">Spécialités</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {famille.specialites.map((s) => <Badge key={s} className="bg-primary-100 text-primary-700">{s}</Badge>)}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Composition du foyer */}
+            <div className="card p-6">
+              <h2 className="mb-4 font-heading text-lg font-semibold text-neutral-900">Composition du foyer</h2>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="rounded-lg bg-neutral-50 p-4">
+                  <p className="text-sm font-medium text-neutral-500">Adultes</p>
+                  <p className="mt-1 text-neutral-900">{famille.nombre_adultes ?? '—'}</p>
+                </div>
+                <div className="rounded-lg bg-neutral-50 p-4">
+                  <p className="text-sm font-medium text-neutral-500">Enfants</p>
+                  <p className="mt-1 text-neutral-900">{famille.nombre_enfants ?? '—'}{famille.ages_enfants ? ` (${famille.ages_enfants})` : ''}</p>
+                </div>
+                <div className="rounded-lg bg-neutral-50 p-4">
+                  <p className="text-sm font-medium text-neutral-500">Type de logement</p>
+                  <p className="mt-1 text-neutral-900">{famille.type_logement === 'maison' ? 'Maison' : famille.type_logement === 'appartement' ? 'Appartement' : '—'}</p>
+                </div>
+                <div className="rounded-lg bg-neutral-50 p-4">
+                  <p className="text-sm font-medium text-neutral-500">Extérieur & jardin</p>
+                  <p className="mt-1 text-neutral-900">
+                    {famille.a_jardin ? (famille.a_jardin_cloture ? 'Jardin clôturé' : 'Jardin non clôturé') : 'Pas de jardin'}
+                  </p>
+                </div>
+                {famille.superficie && (
+                  <div className="rounded-lg bg-neutral-50 p-4">
+                    <p className="text-sm font-medium text-neutral-500">Superficie</p>
+                    <p className="mt-1 text-neutral-900">{famille.superficie} m²</p>
+                  </div>
+                )}
               </div>
             </div>
-            <div className="mt-4 rounded-lg bg-neutral-50 p-4">
-              <p className="text-sm font-medium text-neutral-500">Spécialités (à compléter)</p>
-              <p className="mt-1 text-neutral-900">Chiens, chats, NAC, chiots, seniors, handicapés, catégorisés, gestantes, urgences, réquisitions</p>
+
+            {/* Animaux personnels & acceptés */}
+            <div className="card p-6">
+              <h2 className="mb-4 font-heading text-lg font-semibold text-neutral-900">Animaux personnels & acceptés</h2>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="rounded-lg bg-neutral-50 p-4">
+                  <p className="text-sm font-medium text-neutral-500">Animaux personnels</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {famille.a_chien_personnel && <Badge className="bg-neutral-100 text-neutral-700">Chien(s)</Badge>}
+                    {famille.a_chat_personnel && <Badge className="bg-neutral-100 text-neutral-700">Chat(s)</Badge>}
+                    {famille.a_autre_animal_personnel && <Badge className="bg-neutral-100 text-neutral-700">Autre(s)</Badge>}
+                    {!famille.a_chien_personnel && !famille.a_chat_personnel && !famille.a_autre_animal_personnel && <span className="text-neutral-400">Aucun</span>}
+                  </div>
+                  {famille.animaux_personnels_details && <p className="mt-2 text-sm text-neutral-600">{famille.animaux_personnels_details}</p>}
+                </div>
+                <div className="rounded-lg bg-neutral-50 p-4">
+                  <p className="text-sm font-medium text-neutral-500">Animaux acceptés</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {(famille.accepte_chiens || famille.especes_acceptees?.includes('chien')) && <Badge className="bg-success-100 text-success-700">Chiens</Badge>}
+                    {(famille.accepte_chats || famille.especes_acceptees?.includes('chat')) && <Badge className="bg-success-100 text-success-700">Chats</Badge>}
+                    {famille.accepte_chien_male && <Badge className="bg-neutral-100 text-neutral-700">Mâles</Badge>}
+                    {famille.accepte_chien_femelle && <Badge className="bg-neutral-100 text-neutral-700">Femelles</Badge>}
+                    {famille.accepte_chiots && <Badge className="bg-neutral-100 text-neutral-700">Chiots</Badge>}
+                    {famille.accepte_chatons && <Badge className="bg-neutral-100 text-neutral-700">Chatons</Badge>}
+                    {famille.accepte_petits_chiens && <Badge className="bg-neutral-100 text-neutral-700">Petits chiens</Badge>}
+                    {famille.accepte_grands_chiens && <Badge className="bg-neutral-100 text-neutral-700">Grands chiens</Badge>}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Capacité, durée & disponibilité */}
+            <div className="card p-6">
+              <h2 className="mb-4 font-heading text-lg font-semibold text-neutral-900">Capacité, durée & disponibilité</h2>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="rounded-lg bg-neutral-50 p-4">
+                  <p className="text-sm font-medium text-neutral-500">Durée d'accueil</p>
+                  <p className="mt-1 text-neutral-900">
+                    {famille.duree_accueil === 'temporaire' ? 'Temporaire' :
+                     famille.duree_accueil === 'longue_duree' ? 'Longue durée' :
+                     famille.duree_accueil === 'definitive' ? 'Définitive' :
+                     famille.duree_accueil === 'sur_demande' ? 'Sur demande' : '—'}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-neutral-50 p-4">
+                  <p className="text-sm font-medium text-neutral-500">Disponibilité</p>
+                  <p className="mt-1 text-neutral-900">
+                    {famille.disponibilite === 'immediate' ? 'Immédiate' :
+                     famille.disponibilite === 'a_partir_du' ? `À partir du ${famille.date_disponibilite ? formatDate(famille.date_disponibilite) : ''}` :
+                     famille.disponibilite === 'sur_demande' ? 'Sur demande' : '—'}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-neutral-50 p-4">
+                  <p className="text-sm font-medium text-neutral-500">Contrat</p>
+                  <p className="mt-1 text-neutral-900">
+                    {famille.contrat_actif ? 'Actif' : 'Inactif'}
+                    {famille.date_debut_contrat && ` · depuis ${formatDate(famille.date_debut_contrat)}`}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -655,6 +806,128 @@ export function FamilleDetailPage() {
             <button onClick={handleAddEvaluation} className="btn-primary">Enregistrer</button>
           </div>
         </div>
+      </Modal>
+
+      {/* Modal Édition Famille */}
+      <Modal open={showEditModal} onClose={() => setShowEditModal(false)} title="Modifier la famille d'accueil" size="lg">
+        <form onSubmit={handleEditSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="label">Nom *</label>
+              <input
+                type="text"
+                value={editForm.nom}
+                onChange={(e) => setEditForm({ ...editForm, nom: e.target.value })}
+                required
+                className="input"
+              />
+            </div>
+            <div>
+              <label className="label">Prénom</label>
+              <input
+                type="text"
+                value={editForm.prenom}
+                onChange={(e) => setEditForm({ ...editForm, prenom: e.target.value })}
+                className="input"
+              />
+            </div>
+            <div>
+              <label className="label">Téléphone</label>
+              <input
+                type="tel"
+                value={editForm.telephone}
+                onChange={(e) => setEditForm({ ...editForm, telephone: e.target.value })}
+                className="input"
+              />
+            </div>
+            <div>
+              <label className="label">Email</label>
+              <input
+                type="email"
+                value={editForm.email}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                className="input"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="label">Adresse</label>
+              <input
+                type="text"
+                value={editForm.adresse}
+                onChange={(e) => setEditForm({ ...editForm, adresse: e.target.value })}
+                className="input"
+              />
+            </div>
+            <div>
+              <label className="label">Code postal</label>
+              <input
+                type="text"
+                value={editForm.code_postal}
+                onChange={(e) => setEditForm({ ...editForm, code_postal: e.target.value })}
+                className="input"
+              />
+            </div>
+            <div>
+              <label className="label">Ville</label>
+              <input
+                type="text"
+                value={editForm.ville}
+                onChange={(e) => setEditForm({ ...editForm, ville: e.target.value })}
+                className="input"
+              />
+            </div>
+            <div>
+              <label className="label">Département</label>
+              <input
+                type="text"
+                value={editForm.departement}
+                onChange={(e) => setEditForm({ ...editForm, departement: e.target.value })}
+                className="input"
+              />
+            </div>
+            <div>
+              <label className="label">Capacité max</label>
+              <input
+                type="number"
+                min={1}
+                value={editForm.capacite_max}
+                onChange={(e) => setEditForm({ ...editForm, capacite_max: Number(e.target.value) })}
+                className="input"
+              />
+            </div>
+            <div>
+              <label className="label">Matériel confié</label>
+              <input
+                type="text"
+                value={editForm.materiel_confie}
+                onChange={(e) => setEditForm({ ...editForm, materiel_confie: e.target.value })}
+                className="input"
+              />
+            </div>
+            <div>
+              <label className="label">Croquettes fournies</label>
+              <input
+                type="text"
+                value={editForm.croquettes_fournies}
+                onChange={(e) => setEditForm({ ...editForm, croquettes_fournies: e.target.value })}
+                className="input"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="label">Notes</label>
+              <textarea
+                value={editForm.notes}
+                onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                rows={3}
+                className="input"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-3">
+            <button type="button" onClick={() => setShowEditModal(false)} className="btn-ghost">Annuler</button>
+            <button type="submit" className="btn-primary">Enregistrer</button>
+          </div>
+        </form>
       </Modal>
 
       {/* Modal Suivi Hebdomadaire */}

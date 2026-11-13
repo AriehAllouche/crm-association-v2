@@ -19,6 +19,8 @@ const moduleLabels: Record<DocumentModule, string> = {
   pension: 'Pension',
   transport: 'Transport',
   communication: 'Communication',
+  icad: 'ICAD',
+  sante: 'Santé',
   autre: 'Autre',
 };
 

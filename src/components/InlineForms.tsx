@@ -66,12 +66,24 @@ export function InlineVetVisitForm({ animalId, onSaved }: InlineFormProps) {
         notes: form.notes || null,
       });
       if (error) throw new Error(error.message);
-      
+
+      // Double saisie évitée : une visite avec coût alimente automatiquement les dépenses
+      const cout = form.cout ? parseFloat(form.cout) : 0;
+      if (cout > 0) {
+        await supabase.from('depenses').insert({
+          animal_id: animalId,
+          categorie: 'veterinaire',
+          description: `Visite vétérinaire — ${form.motif || 'consultation'}`,
+          montant: cout,
+          date_depense: form.date_visite,
+        });
+      }
+
       // Synchroniser le statut de l'animal (visite vétérinaire peut changer le statut)
       if (animalId) {
         await syncAnimal(animalId);
       }
-      
+
       setOpen(false);
       setForm({ veterinaire_id: '', date_visite: new Date().toISOString().split('T')[0], motif: '', diagnostic: '', traitement: '', cout: '', prochaine_visite: '', notes: '' });
       onSaved();
@@ -920,7 +932,6 @@ export function InlineCreateRegistreForm({ animalId, onSaved }: InlineFormProps)
     type: 'entree' as 'entree' | 'sortie',
     motif: '',
     date: new Date().toISOString().split('T')[0],
-    notes: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -928,18 +939,15 @@ export function InlineCreateRegistreForm({ animalId, onSaved }: InlineFormProps)
     setSaving(true);
     setError(null);
     try {
-      const prefix = form.type === 'entree' ? 'ENT' : 'SOR';
       const { error } = await supabase.from('registre_entrees_sorties').insert({
         animal_id: animalId,
-        numero_entree: `${prefix}-${Date.now()}`,
-        type: form.type,
+        type_mouvement: form.type,
         motif: form.motif,
         date: form.date,
-        notes: form.notes || null,
       });
       if (error) throw new Error(error.message);
       setOpen(false);
-      setForm({ type: 'entree', motif: '', date: new Date().toISOString().split('T')[0], notes: '' });
+      setForm({ type: 'entree', motif: '', date: new Date().toISOString().split('T')[0] });
       onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur');
@@ -971,10 +979,6 @@ export function InlineCreateRegistreForm({ animalId, onSaved }: InlineFormProps)
             <div className="col-span-2">
               <label className="label">Motif *</label>
               <input type="text" required value={form.motif} onChange={(e) => setForm({ ...form, motif: e.target.value })} className="input" placeholder="Prise en charge, adoption, décès..." />
-            </div>
-            <div className="col-span-2">
-              <label className="label">Notes</label>
-              <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} className="input" />
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">

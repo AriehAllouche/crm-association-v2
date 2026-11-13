@@ -3,12 +3,16 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Pencil, Dog, Siren, HeartHandshake, Stethoscope, Scale,
   Building2, Truck, FileText, Euro, Activity, MapPin, Syringe, Calendar,
-  Home, AlertTriangle, ChevronRight, Trash2, History, Users,
+  Home, AlertTriangle, ChevronRight, Trash2, History, Users, Fingerprint, HeartPulse, Pill,
 } from 'lucide-react';
 import { fetchAnimalDetails, type AnimalDetails, type StatusHistoryEvent } from '../lib/animalDetails';
+import { calculateAnimalStats, generateAnimalFinancialReport } from '../lib/notifications';
 import { supabase } from '../lib/supabase';
-import { LoadingSpinner, Badge, EmptyState } from '../components/ui';
+import { LoadingSpinner, Badge, EmptyState, Modal } from '../components/ui';
 import { HistoryTimeline } from '../components/HistoryTimeline';
+import { IcadDemandesSection } from '../components/IcadDemandesSection';
+import { CarnetSanteSection } from '../components/CarnetSanteSection';
+import { ObservationsMorsuresSection } from '../components/ObservationsMorsuresSection';
 import { getFamillesAccueilStatuts, type FamilleAccueilStatutInfo } from '../lib/familleAccueil';
 import { openDocument } from '../lib/documentUpload';
 import { isV2 } from '../lib/features';
@@ -23,7 +27,7 @@ import {
   animalStatutLabels, animalStatutColors, especeLabels, santeStatutLabels,
   santeStatutColors, formatDate, formatDateTime, formatCurrency,
   adoptionStatutLabels, justiceStatutLabels, transportStatutLabels,
-  pensionTypeLabels, daysUntil,
+  pensionTypeLabels, daysUntil, originePecLabels,
 } from '../lib/constants';
 
 const timelineIcons: Record<string, typeof Activity> = {
@@ -40,6 +44,12 @@ const timelineIcons: Record<string, typeof Activity> = {
   justice_audience: Scale,
   communication: Activity,
   depense: Euro,
+  statut_change: Activity,
+  document: FileText,
+  autre: Activity,
+  icad: Fingerprint,
+  vaccination: Syringe,
+  sante_soin: Pill,
 };
 
 export function AnimalDetailPage() {
@@ -52,6 +62,18 @@ export function AnimalDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [faStatuts, setFaStatuts] = useState<Record<string, FamilleAccueilStatutInfo>>({});
+  const [icadCount, setIcadCount] = useState(0);
+  const [santeCount, setSanteCount] = useState(0);
+  const [obsMorsureCount, setObsMorsureCount] = useState(0);
+  const [timelineEvent, setTimelineEvent] = useState<any | null>(null);
+  const [animalStats, setAnimalStats] = useState<{
+    cout_total: number;
+    cout_par_jour: number;
+    duree_prise_en_charge: number;
+    nombre_visites: number;
+    nombre_transports: number;
+    nombre_sejours_pension: number;
+  } | null>(null);
 
   const handleDelete = async () => {
     if (!id) return;
@@ -77,6 +99,10 @@ export function AnimalDetailPage() {
       const details = await fetchAnimalDetails(id);
       setData(details);
 
+      // Calculer les statistiques de l'animal en temps réel
+      const stats = await calculateAnimalStats(id);
+      setAnimalStats(stats);
+
       // Récupérer les statuts des familles d'accueil
       const faIds = details.familles_accueil
         .map((fa) => fa.famille_accueil_id)
@@ -86,6 +112,27 @@ export function AnimalDetailPage() {
         const statuts = await getFamillesAccueilStatuts(faIds);
         setFaStatuts(statuts);
       }
+
+      // Nombre de demandes ICAD pour le badge d'onglet
+      const { count } = await supabase
+        .from('icad_demandes')
+        .select('*', { count: 'exact', head: true })
+        .eq('animal_id', id);
+      setIcadCount(count ?? 0);
+
+      // Nombre de vaccinations + soins pour le badge d'onglet Santé
+      const [vaccCount, soinCount] = await Promise.all([
+        supabase.from('vaccinations').select('*', { count: 'exact', head: true }).eq('animal_id', id),
+        supabase.from('sante_soins').select('*', { count: 'exact', head: true }).eq('animal_id', id),
+      ]);
+      setSanteCount((vaccCount.count ?? 0) + (soinCount.count ?? 0));
+
+      // Nombre d'observations + morsures pour le badge d'onglet
+      const [obsCount, morsCount] = await Promise.all([
+        supabase.from('animal_observations').select('*', { count: 'exact', head: true }).eq('animal_id', id),
+        supabase.from('morsures').select('*', { count: 'exact', head: true }).eq('animal_id', id),
+      ]);
+      setObsMorsureCount((obsCount.count ?? 0) + (morsCount.count ?? 0));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de chargement');
     } finally {
@@ -132,12 +179,14 @@ export function AnimalDetailPage() {
     { id: 'signalement', label: 'Signalement', icon: Siren, count: signalement ? 1 : 0 },
     { id: 'famille', label: 'Famille d\'accueil', icon: Home, count: familles_accueil.length },
     { id: 'veterinaire', label: 'Vétérinaire', icon: Stethoscope, count: visites.length },
-    { id: 'comportement', label: 'Comportement', icon: Activity, count: 0 },
+    { id: 'sante', label: 'Santé', icon: HeartPulse, count: santeCount },
+    { id: 'comportement', label: 'Observations', icon: Activity, count: obsMorsureCount },
     { id: 'justice', label: 'Justice', icon: Scale, count: justice.length },
     { id: 'pension', label: 'Pension', icon: Building2, count: sejours.length },
     { id: 'transport', label: 'Transport', icon: Truck, count: transports.length },
     { id: 'adoption', label: 'Adoption', icon: HeartHandshake, count: adoptions.length },
     { id: 'documents', label: 'Documents', icon: FileText, count: documents.length },
+    { id: 'icad', label: 'ICAD', icon: Fingerprint, count: icadCount },
     { id: 'depenses', label: 'Coûts', icon: Euro, count: depenses.length },
     { id: 'communication', label: 'Communication', icon: Activity, count: communications.length },
     { id: 'registre', label: 'Registre', icon: Calendar, count: registre.length },
@@ -145,7 +194,7 @@ export function AnimalDetailPage() {
     // Les modules reportés en V2 sont annoncés « à venir » dans la navigation:
     // les exposer ici, remplis de données, contredirait cette promesse.
     .filter((t) => !isV2(t.id))
-    .filter((t) => t.count > 0 || ['identite', 'situation', 'responsables', 'timeline', 'historique', 'famille', 'veterinaire', 'comportement', 'documents', 'depenses', 'registre'].includes(t.id));
+    .filter((t) => t.count > 0 || ['identite', 'situation', 'responsables', 'timeline', 'historique', 'famille', 'veterinaire', 'sante', 'comportement', 'documents', 'depenses', 'registre', 'icad'].includes(t.id));
 
   return (
     <div>
@@ -194,7 +243,7 @@ export function AnimalDetailPage() {
                 </button>
                 <button
                   onClick={() => {
-                    const dossier = `DOSSIER ANIMAL - ${animal.nom}\n\n=== IDENTITÉ ===\nNom: ${animal.nom}\nEspèce: ${especeLabels[animal.espece]}\nRace: ${animal.race || '—'}\nSexe: ${animal.sexe === 'male' ? 'Mâle' : animal.sexe === 'femelle' ? 'Femelle' : '—'}\nDate de naissance: ${animal.date_naissance ? formatDate(animal.date_naissance) : '—'}\nICAD: ${animal.numero_icad || '—'}\nPuce: ${animal.numero_puce || '—'}\n\n=== SITUATION ===\nStatut: ${animalStatutLabels[animal.statut]}\nLieu actuel: ${animal.lieu_actuel || '—'}\nDate PEC: ${animal.date_pec ? formatDate(animal.date_pec) : '—'}\nDate sortie: ${animal.date_sortie ? formatDate(animal.date_sortie) : '—'}\n\n=== SANTÉ ===\nStatut santé: ${santeStatutLabels[animal.sante_statut]}\nStérilisé: ${animal.sterilise ? 'Oui' : 'Non'}\nVacciné: ${animal.vaccinne ? 'Oui' : 'Non'}\nPoids: ${animal.poids || '—'} kg\nNotes: ${animal.sante_notes || '—'}\n\n=== FINANCES ===\nCoût total: ${formatCurrency(cout_total)}\nDurée PEC: ${animal.date_pec ? Math.floor((new Date().getTime() - new Date(animal.date_pec).getTime()) / (1000 * 60 * 60 * 24)) : 0} jours\nCoût moyen/jour: ${animal.date_pec && cout_total > 0 ? formatCurrency(cout_total / Math.max(1, Math.floor((new Date().getTime() - new Date(animal.date_pec).getTime()) / (1000 * 60 * 60 * 24)))) : '—'}\n\n=== TIMELINE ===\n${timeline.map(e => `• ${formatDateTime(e.date)} - ${e.title}`).join('\n')}\n\nGénéré le: ${formatDateTime(new Date().toISOString())}`;
+                    const dossier = `DOSSIER ANIMAL - ${animal.nom}\n\n=== IDENTITÉ ===\nNom: ${animal.nom}\nEspèce: ${especeLabels[animal.espece]}\nRace: ${animal.race || '—'}\nSexe: ${animal.sexe === 'male' ? 'Mâle' : animal.sexe === 'femelle' ? 'Femelle' : '—'}\nDate de naissance: ${animal.date_naissance ? formatDate(animal.date_naissance) : '—'}\nICAD: ${animal.numero_icad || '—'}\nPuce: ${animal.numero_puce || '—'}\n\n=== SITUATION ===\nStatut: ${animalStatutLabels[animal.statut]}\nLieu actuel: ${animal.lieu_actuel || '—'}\nDate PEC: ${animal.date_pec ? formatDate(animal.date_pec) : '—'}\nDate sortie: ${animal.date_sortie ? formatDate(animal.date_sortie) : '—'}\n\n=== SANTÉ ===\nStatut santé: ${santeStatutLabels[animal.sante_statut]}\nStérilisé: ${animal.sterilise ? 'Oui' : 'Non'}\nVacciné: ${animal.vaccinne ? 'Oui' : 'Non'}\nPoids: ${animal.poids || '—'} kg\nNotes: ${animal.sante_notes || '—'}\n\n=== FINANCES ===\nCoût total: ${formatCurrency(cout_total)}\nDurée PEC: ${animalStats?.duree_prise_en_charge || 0} jours\nCoût moyen/jour: ${animalStats?.cout_par_jour ? formatCurrency(animalStats.cout_par_jour) : '—'}\nNombre visites: ${animalStats?.nombre_visites || 0}\nNombre transports: ${animalStats?.nombre_transports || 0}\nNombre séjours pension: ${animalStats?.nombre_sejours_pension || 0}\n\n=== TIMELINE ===\n${timeline.map(e => `• ${formatDateTime(e.date)} - ${e.title}`).join('\n')}\n\nGénéré le: ${formatDateTime(new Date().toISOString())}`;
                     navigator.clipboard.writeText(dossier);
                     alert('Dossier complet copié dans le presse-papier !');
                   }}
@@ -203,6 +252,18 @@ export function AnimalDetailPage() {
                 >
                   <FileText size={16} /> PDF
                 </button>
+                <button
+                  onClick={async () => {
+                    if (!id) return;
+                    const report = await generateAnimalFinancialReport(id);
+                    navigator.clipboard.writeText(report);
+                    alert('Rapport financier copié dans le presse-papier !');
+                  }}
+                  className="btn-ghost"
+                  title="Générer rapport financier"
+                >
+                  <Euro size={16} /> Rapport
+                </button>
                 <Link to={`/animaux/${animal.id}/edit`} className="btn-ghost"><Pencil size={16} /> Modifier</Link>
                 <button onClick={() => setShowDeleteConfirm(true)} className="btn-ghost text-error-600 hover:bg-error-50"><Trash2 size={16} /> Supprimer</button>
               </div>
@@ -210,7 +271,7 @@ export function AnimalDetailPage() {
             <div className="mt-3 flex flex-wrap gap-4 text-sm text-neutral-600">
               {animal.sexe && <span>{animal.sexe === 'male' ? 'Mâle' : animal.sexe === 'femelle' ? 'Femelle' : ''}</span>}
               {animal.date_naissance && <span>Né le {formatDate(animal.date_naissance)}</span>}
-              {animal.numero_icad && <span>ICAD: {animal.numero_icad}</span>}
+              {(animal.numero_puce || animal.numero_icad || animal.icad_number) && <span>ICAD: {animal.numero_puce || animal.numero_icad || animal.icad_number}</span>}
               {animal.agent && <span>Agent: {animal.agent}</span>}
               {animal.date_pec && <span>PEC: {formatDate(animal.date_pec)}</span>}
               {animal.lieu_actuel && <span className="flex items-center gap-1"><MapPin size={14} /> {animal.lieu_actuel}</span>}
@@ -229,6 +290,27 @@ export function AnimalDetailPage() {
               <Badge className="bg-error-50 text-error-700"><Euro size={12} className="mr-1" />{formatCurrency(cout_total)}</Badge>
               {justice.length > 0 && <Badge className="bg-neutral-100 text-neutral-700">Justice</Badge>}
               {faActive.length > 0 && <Badge className="bg-success-100 text-success-700"><Home size={12} className="mr-1" />FA: {faActive[0].famille_accueil?.nom}</Badge>}
+            </div>
+            {/* Bandeau des 3 statuts distincts */}
+            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <div className="rounded-lg border border-neutral-200 p-2">
+                <p className="text-xs font-medium text-neutral-500">Situation administrative</p>
+                <p className="mt-0.5 text-sm font-semibold text-neutral-900">{animalStatutLabels[animal.statut]}</p>
+              </div>
+              <div className="rounded-lg border border-neutral-200 p-2">
+                <p className="text-xs font-medium text-neutral-500">Hébergement actuel</p>
+                <p className="mt-0.5 text-sm font-semibold text-neutral-900">
+                  {faActive.length > 0 ? `Famille d'accueil (${faActive[0].famille_accueil?.nom ?? '—'})` :
+                   sejours.some((s) => !s.date_sortie) ? 'Pension' :
+                   animal.lieu_actuel || 'Centre / Fourrière'}
+                </p>
+              </div>
+              <div className="rounded-lg border border-neutral-200 p-2">
+                <p className="text-xs font-medium text-neutral-500">Disponibilité adoption</p>
+                <p className="mt-0.5 text-sm font-semibold text-neutral-900">
+                  {animal.adopte ? 'Adopté' : animal.reserve ? 'Réservé' : animal.remis_proprietaire ? 'Remis au propriétaire' : 'Disponible'}
+                </p>
+              </div>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-4 rounded-lg bg-neutral-50 p-3 text-xs sm:grid-cols-4">
               <div>
@@ -255,6 +337,26 @@ export function AnimalDetailPage() {
                 <p className="text-neutral-900">{formatCurrency(cout_total)}</p>
               </div>
             </div>
+            {animalStats && (
+              <div className="mt-3 grid grid-cols-2 gap-4 rounded-lg bg-primary-50 p-3 text-xs sm:grid-cols-4">
+                <div>
+                  <p className="font-medium text-primary-600">Durée PEC</p>
+                  <p className="text-neutral-900">{animalStats.duree_prise_en_charge} jours</p>
+                </div>
+                <div>
+                  <p className="font-medium text-primary-600">Coût/jour</p>
+                  <p className="text-neutral-900">{formatCurrency(animalStats.cout_par_jour)}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-primary-600">Visites véto</p>
+                  <p className="text-neutral-900">{animalStats.nombre_visites}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-primary-600">Transports</p>
+                  <p className="text-neutral-900">{animalStats.nombre_transports}</p>
+                </div>
+              </div>
+            )}
             <div className="mt-3 flex flex-wrap gap-4 text-xs text-neutral-500">
               {animal.date_pec && (
                 <span>Durée PEC: {Math.floor((new Date().getTime() - new Date(animal.date_pec).getTime()) / (1000 * 60 * 60 * 24))} jours</span>
@@ -347,12 +449,12 @@ export function AnimalDetailPage() {
                 <p className="mt-1">{animal.taille || '—'}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-neutral-500">Numéro ICAD</p>
-                <p className="mt-1 font-mono">{animal.numero_icad || '—'}</p>
+                <p className="text-sm font-medium text-neutral-500">Numéro de puce (ICAD)</p>
+                <p className="mt-1 font-mono">{animal.numero_puce || animal.numero_icad || animal.icad_number || '—'}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-neutral-500">Numéro de puce</p>
-                <p className="mt-1 font-mono">{animal.numero_puce || '—'}</p>
+                <p className="text-sm font-medium text-neutral-500">Numéro de tatouage</p>
+                <p className="mt-1 font-mono">{animal.numero_tatouage || '—'}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-neutral-500">Catégorie</p>
@@ -376,7 +478,7 @@ export function AnimalDetailPage() {
                 <p className="mt-1"><Badge className={animalStatutColors[animal.statut]}>{animalStatutLabels[animal.statut]}</Badge></p>
               </div>
               <div>
-                <p className="text-sm font-medium text-neutral-500">Lieu actuel</p>
+                <p className="text-sm font-medium text-neutral-500">Lieu de prise en charge</p>
                 <p className="mt-1 flex items-center gap-1"><MapPin size={14} /> {animal.lieu_actuel || '—'}</p>
               </div>
               <div>
@@ -399,14 +501,35 @@ export function AnimalDetailPage() {
                 <p className="text-sm font-medium text-neutral-500">Statut juridique</p>
                 <p className="mt-1">{justice.length > 0 ? 'Dossier judiciaire en cours' : 'Aucun dossier'}</p>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* PRISE EN CHARGE */}
+        {activeTab === 'situation' && (animal.origine_pec || animal.service_demandeur || animal.circonstances_pec) && (
+          <div className="card mt-4 p-6">
+            <h2 className="mb-4 font-heading text-lg font-semibold text-neutral-900">Circonstances de la prise en charge</h2>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
-                <p className="text-sm font-medium text-neutral-500">Stérilisé</p>
-                <p className="mt-1">{animal.sterilise ? 'Oui' : 'Non'}</p>
+                <p className="text-sm font-medium text-neutral-500">Origine</p>
+                <p className="mt-1">{animal.origine_pec ? (originePecLabels[animal.origine_pec] ?? animal.origine_pec) : '—'}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-neutral-500">Vacciné</p>
-                <p className="mt-1">{animal.vaccinne ? 'Oui' : 'Non'}</p>
+                <p className="text-sm font-medium text-neutral-500">Service demandeur</p>
+                <p className="mt-1">{animal.service_demandeur || '—'}</p>
               </div>
+              {animal.service_demandeur_contact && (
+                <div>
+                  <p className="text-sm font-medium text-neutral-500">Coordonnées du service</p>
+                  <p className="mt-1">{animal.service_demandeur_contact}</p>
+                </div>
+              )}
+              {animal.circonstances_pec && (
+                <div className="sm:col-span-2">
+                  <p className="text-sm font-medium text-neutral-500">Circonstances de la récupération</p>
+                  <p className="mt-1 whitespace-pre-line text-neutral-900">{animal.circonstances_pec}</p>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -452,37 +575,9 @@ export function AnimalDetailPage() {
           </div>
         )}
 
-        {/* COMPORTEMENT */}
-        {activeTab === 'comportement' && (
-          <div className="card p-6">
-            <h2 className="mb-4 font-heading text-lg font-semibold text-neutral-900">Évaluation comportementale</h2>
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm font-medium text-neutral-500">Évaluation initiale</p>
-                <p className="mt-1 text-neutral-900">{animal.comportement || 'Aucune évaluation enregistrée'}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-neutral-500">Niveau</p>
-                <p className="mt-1 text-neutral-900">À définir</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-neutral-500">Éducateur référent</p>
-                <p className="mt-1 text-neutral-900">À définir</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-neutral-500">Historique des séances</p>
-                <p className="mt-1 text-neutral-500">Aucune séance enregistrée</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-neutral-500">Bilan</p>
-                <p className="mt-1 text-neutral-500">Aucun bilan disponible</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-neutral-500">Conseils et objectifs</p>
-                <p className="mt-1 text-neutral-500">Aucun conseil enregistré</p>
-              </div>
-            </div>
-          </div>
+        {/* OBSERVATIONS & MORSURES */}
+        {activeTab === 'comportement' && id && (
+          <ObservationsMorsuresSection animalId={id} onChanged={loadData} />
         )}
 
         {/* HISTORIQUE */}
@@ -540,7 +635,11 @@ export function AnimalDetailPage() {
                         </div>
                         {i < timeline.length - 1 && <div className="w-px flex-1 bg-neutral-200" />}
                       </div>
-                      <div className="flex-1 pb-6">
+                      <div
+                        className="flex-1 cursor-pointer pb-6 transition-colors hover:bg-neutral-50 rounded-lg -mx-2 px-2"
+                        onClick={() => setTimelineEvent(event)}
+                        title="Cliquer pour voir les détails"
+                      >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <p className="font-medium text-neutral-900">{event.title}</p>
@@ -896,6 +995,16 @@ export function AnimalDetailPage() {
           </div>
         )}
 
+        {/* SANTÉ - Carnet de santé (vaccinations & soins) */}
+        {activeTab === 'sante' && id && (
+          <CarnetSanteSection animalId={id} espece={animal.espece} onChanged={loadData} />
+        )}
+
+        {/* ICAD - Historique détenteurs & demandes */}
+        {activeTab === 'icad' && id && (
+          <IcadDemandesSection animalId={id} onChanged={loadData} />
+        )}
+
         {/* DOCUMENTS */}
         {activeTab === 'documents' && (
           <div className="space-y-4">
@@ -1021,11 +1130,11 @@ export function AnimalDetailPage() {
                   {registre.map((r) => (
                     <div key={r.id} className="flex items-center justify-between border-b border-neutral-100 py-3">
                       <div>
-                        <p className="font-mono text-sm font-medium text-neutral-900">{r.numero_entree}</p>
-                        <p className="text-xs text-neutral-500">{r.type === 'entree' ? 'Entrée' : 'Sortie'} · {formatDate(r.date)}</p>
+                        <p className="text-sm font-medium text-neutral-900">{r.motif || (r.type_mouvement === 'entree' ? 'Entrée' : 'Sortie')}</p>
+                        <p className="text-xs text-neutral-500">{r.type_mouvement === 'entree' ? 'Entrée' : 'Sortie'} · {formatDate(r.date)}</p>
                       </div>
-                      <Badge className={r.type === 'entree' ? 'bg-success-100 text-success-700' : 'bg-neutral-100 text-neutral-600'}>
-                        {r.type === 'entree' ? 'Entrée' : 'Sortie'}
+                      <Badge className={r.type_mouvement === 'entree' ? 'bg-success-100 text-success-700' : 'bg-neutral-100 text-neutral-600'}>
+                        {r.type_mouvement === 'entree' ? 'Entrée' : 'Sortie'}
                       </Badge>
                     </div>
                   ))}
@@ -1035,6 +1144,43 @@ export function AnimalDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Timeline Event Detail Modal */}
+      <Modal open={!!timelineEvent} onClose={() => setTimelineEvent(null)} title="Détail de l'événement" size="md">
+        {timelineEvent && (
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm font-medium text-neutral-500">Titre</p>
+              <p className="mt-1 font-medium text-neutral-900">{timelineEvent.title}</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-neutral-500">Date</p>
+              <p className="mt-1 text-neutral-900">{formatDateTime(timelineEvent.date)}</p>
+            </div>
+            {timelineEvent.description && (
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Description</p>
+                <p className="mt-1 whitespace-pre-line text-neutral-900">{timelineEvent.description}</p>
+              </div>
+            )}
+            {timelineEvent.details && Object.keys(timelineEvent.details).filter((k) => k !== 'action').length > 0 && (
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Détails</p>
+                <div className="mt-2 space-y-1 rounded-lg bg-neutral-50 p-3">
+                  {Object.entries(timelineEvent.details)
+                    .filter(([k]) => k !== 'action')
+                    .map(([k, v]) => (
+                      <div key={k} className="flex justify-between gap-4 text-sm">
+                        <span className="text-neutral-500">{k.replace(/_/g, ' ')}</span>
+                        <span className="text-right font-medium text-neutral-900">{typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (

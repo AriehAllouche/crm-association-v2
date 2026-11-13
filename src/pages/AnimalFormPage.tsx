@@ -4,7 +4,7 @@ import { ArrowLeft, Save, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { PageHeader, LoadingSpinner } from '../components/ui';
 import { ImageUpload } from '../components/ImageUpload';
-import { animalStatutLabels, especeLabels } from '../lib/constants';
+import { animalStatutLabels, especeLabels, originePecLabels } from '../lib/constants';
 import type { Animal, AnimalStatut, AnimalEspece, AnimalSexe, SanteStatut } from '../types';
 
 export function AnimalFormPage() {
@@ -33,6 +33,11 @@ export function AnimalFormPage() {
     numero_icad: '',
     icad_number: '',
     numero_puce: '',
+    numero_tatouage: '',
+    origine_pec: '',
+    service_demandeur: '',
+    service_demandeur_contact: '',
+    circonstances_pec: '',
     statut: 'signale' as AnimalStatut,
     status_pec: '',
     animal_state: '',
@@ -121,6 +126,11 @@ export function AnimalFormPage() {
         numero_icad: a.numero_icad || '',
         icad_number: a.icad_number || '',
         numero_puce: a.numero_puce || '',
+        numero_tatouage: a.numero_tatouage || '',
+        origine_pec: a.origine_pec || '',
+        service_demandeur: a.service_demandeur || '',
+        service_demandeur_contact: a.service_demandeur_contact || '',
+        circonstances_pec: a.circonstances_pec || '',
         statut: a.statut || 'signale',
         status_pec: a.status_pec || '',
         animal_state: a.animal_state || '',
@@ -223,9 +233,9 @@ export function AnimalFormPage() {
         if (data) {
           await supabase.from('registre_entrees_sorties').insert({
             animal_id: data.id,
-            numero_entree: `ENT-${Date.now()}`,
-            type: 'entree',
+            type_mouvement: 'entree',
             motif: 'Prise en charge',
+            date: new Date().toISOString().split('T')[0],
           });
           navigate(`/animaux/${data.id}`);
         }
@@ -375,21 +385,21 @@ export function AnimalFormPage() {
           <h2 className="mb-4 font-heading text-lg font-semibold text-neutral-900">Identification</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div>
-              <label className="label">Numéro ICAD</label>
+              <label className="label">Numéro de puce (ICAD)</label>
               <input
                 type="text"
-                value={form.numero_icad}
-                onChange={(e) => setForm({ ...form, numero_icad: e.target.value })}
+                value={form.numero_puce}
+                onChange={(e) => setForm({ ...form, numero_puce: e.target.value })}
                 className="input"
                 placeholder="250259..."
               />
             </div>
             <div>
-              <label className="label">Numéro de puce</label>
+              <label className="label">Numéro de tatouage</label>
               <input
                 type="text"
-                value={form.numero_puce}
-                onChange={(e) => setForm({ ...form, numero_puce: e.target.value })}
+                value={form.numero_tatouage}
+                onChange={(e) => setForm({ ...form, numero_tatouage: e.target.value })}
                 className="input"
               />
             </div>
@@ -406,22 +416,13 @@ export function AnimalFormPage() {
               </select>
             </div>
             <div>
-              <label className="label">Date de prise en charge</label>
-              <input
-                type="date"
-                value={form.date_prise_en_charge}
-                onChange={(e) => setForm({ ...form, date_prise_en_charge: e.target.value })}
-                className="input"
-              />
-            </div>
-            <div>
-              <label className="label">Lieu actuel</label>
+              <label className="label">Lieu de prise en charge</label>
               <input
                 type="text"
                 value={form.lieu_actuel}
                 onChange={(e) => setForm({ ...form, lieu_actuel: e.target.value })}
                 className="input"
-                placeholder="Famille d'accueil - 69"
+                placeholder="Lieu de récupération de l'animal"
               />
             </div>
             <div>
@@ -435,25 +436,64 @@ export function AnimalFormPage() {
               />
             </div>
           </div>
-          <div className="mt-4 flex gap-6">
-            <label className="flex items-center gap-2 text-sm text-neutral-700">
+        </div>
+
+        {/* Prise en charge */}
+        <div className="card p-6">
+          <h2 className="mb-4 font-heading text-lg font-semibold text-neutral-900">Prise en charge</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div>
+              <label className="label">Date de prise en charge</label>
               <input
-                type="checkbox"
-                checked={form.sterilise}
-                onChange={(e) => setForm({ ...form, sterilise: e.target.checked })}
-                className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+                type="date"
+                value={form.date_pec}
+                onChange={(e) => setForm({ ...form, date_pec: e.target.value })}
+                className="input"
               />
-              Stérilisé(e)
-            </label>
-            <label className="flex items-center gap-2 text-sm text-neutral-700">
+            </div>
+            <div>
+              <label className="label">Origine de la prise en charge</label>
+              <select
+                value={form.origine_pec}
+                onChange={(e) => setForm({ ...form, origine_pec: e.target.value })}
+                className="input"
+              >
+                <option value="">—</option>
+                {Object.entries(originePecLabels).map(([k, v]) => (
+                  <option key={k} value={k}>{v}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="label">Service demandeur</label>
               <input
-                type="checkbox"
-                checked={form.vaccinne}
-                onChange={(e) => setForm({ ...form, vaccinne: e.target.checked })}
-                className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+                type="text"
+                value={form.service_demandeur}
+                onChange={(e) => setForm({ ...form, service_demandeur: e.target.value })}
+                className="input"
+                placeholder="Ex : Gendarmerie de Lyon"
               />
-              Vacciné(e)
-            </label>
+            </div>
+            <div>
+              <label className="label">Coordonnées du service demandeur</label>
+              <input
+                type="text"
+                value={form.service_demandeur_contact}
+                onChange={(e) => setForm({ ...form, service_demandeur_contact: e.target.value })}
+                className="input"
+                placeholder="Tél, email, adresse..."
+              />
+            </div>
+            <div className="sm:col-span-2 lg:col-span-3">
+              <label className="label">Circonstances de la récupération</label>
+              <textarea
+                value={form.circonstances_pec}
+                onChange={(e) => setForm({ ...form, circonstances_pec: e.target.value })}
+                rows={3}
+                className="input"
+                placeholder="Ex : animal récupéré à la demande de la gendarmerie après la garde à vue de son détenteur..."
+              />
+            </div>
           </div>
         </div>
 
@@ -469,15 +509,6 @@ export function AnimalFormPage() {
                 onChange={(e) => setForm({ ...form, agent: e.target.value })}
                 className="input"
                 placeholder="Morgan, Margareth..."
-              />
-            </div>
-            <div>
-              <label className="label">Date de PEC</label>
-              <input
-                type="date"
-                value={form.date_pec}
-                onChange={(e) => setForm({ ...form, date_pec: e.target.value })}
-                className="input"
               />
             </div>
             <div>
@@ -587,6 +618,26 @@ export function AnimalFormPage() {
         {/* Santé & comportement */}
         <div className="card p-6">
           <h2 className="mb-4 font-heading text-lg font-semibold text-neutral-900">Santé & comportement</h2>
+          <div className="mb-4 flex gap-6">
+            <label className="flex items-center gap-2 text-sm text-neutral-700">
+              <input
+                type="checkbox"
+                checked={form.sterilise}
+                onChange={(e) => setForm({ ...form, sterilise: e.target.checked })}
+                className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+              />
+              Stérilisé(e)
+            </label>
+            <label className="flex items-center gap-2 text-sm text-neutral-700">
+              <input
+                type="checkbox"
+                checked={form.vaccinne}
+                onChange={(e) => setForm({ ...form, vaccinne: e.target.checked })}
+                className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+              />
+              Vacciné(e)
+            </label>
+          </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="label">État de santé</label>

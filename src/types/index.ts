@@ -57,6 +57,11 @@ export interface Animal {
   numero_icad?: string;
   icad_number?: string;
   numero_puce?: string;
+  numero_tatouage?: string;
+  origine_pec?: string;
+  service_demandeur?: string;
+  service_demandeur_contact?: string;
+  circonstances_pec?: string;
   statut: AnimalStatut;
   status_pec?: string;
   animal_state?: string;
@@ -138,6 +143,8 @@ export interface Signalement {
   urgence: SignalementUrgence;
   statut: SignalementStatut;
   enqueteur_id?: string;
+  decision?: string;
+  date_decision?: string;
   date_signalement: string;
   created_by?: string;
   created_at: string;
@@ -154,7 +161,7 @@ export interface FamilleAccueil {
   adresse?: string;
   code_postal?: string;
   ville?: string;
-  departement?: string;
+  departement?: number;
   capacite_max: number;
   animaux_actuels: number;
   referent_benevole_id?: string;
@@ -187,8 +194,52 @@ export interface FamilleAccueil {
   latitude?: number;
   longitude?: number;
   specialites?: string[];
+  // Animaux personnels
+  a_chien_personnel?: boolean;
+  a_chat_personnel?: boolean;
+  a_autre_animal_personnel?: boolean;
+  animaux_personnels_details?: string;
+  // Animaux acceptés (détail)
+  accepte_chiots?: boolean;
+  accepte_chatons?: boolean;
+  accepte_petits_chiens?: boolean;
+  accepte_grands_chiens?: boolean;
+  // Capacité et durée d'accueil
+  duree_accueil?: string;
+  // Disponibilité réelle
+  disponibilite?: string;
+  date_disponibilite?: string;
+  // Colonnes existantes en base
+  accepte_chiens?: boolean;
+  accepte_chats?: boolean;
+  accepte_chien_male?: boolean;
+  accepte_chien_femelle?: boolean;
+  a_jardin?: boolean;
+  a_jardin_cloture?: boolean;
+  experience_animaux?: string;
+  enfants_maison?: string;
+  horaires_travail?: string;
+  preferences_comportement?: string;
+  distance_max_km?: number;
+  notes_equipe_interne?: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface MaterielPret {
+  id: string;
+  famille_accueil_id: string;
+  animal_id?: string;
+  type_materiel: string;
+  description?: string;
+  date_attribution: string;
+  date_restitution?: string;
+  statut: 'en_cours' | 'restitue' | 'perdu' | 'casse';
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+  famille_accueil?: FamilleAccueil;
+  animal?: Animal;
 }
 
 export type AdoptionStatut =
@@ -331,6 +382,8 @@ export interface Enqueteur {
   telephone?: string;
   email?: string;
   adresse?: string;
+  ville?: string;
+  specialite?: string;
   departements?: string[];
   zones_couvertes?: string;
   disponibilites?: string;
@@ -342,6 +395,51 @@ export interface Enqueteur {
   actif: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export type EnqueteActionType = 'visite' | 'intervention' | 'demarche' | 'decision' | 'autre';
+export type EnqueteActionStatut = 'planifie' | 'realise' | 'en_attente';
+export type SignalementAnimalRole = 'signale' | 'pris_en_charge' | 'autre';
+
+/** Lien enquêteur ↔ signalement (plusieurs enquêteurs par dossier). */
+export interface SignalementEnqueteur {
+  signalement_id: string;
+  enqueteur_id: string;
+  created_at: string;
+}
+
+/** Compte rendu d'enquête daté. */
+export interface EnqueteCompteRendu {
+  id: string;
+  signalement_id: string;
+  date_rapport: string;
+  auteur?: string;
+  contenu: string;
+  created_by?: string;
+  created_at: string;
+}
+
+/** Action / démarche / visite / intervention du dossier, avec échéance éventuelle. */
+export interface EnqueteAction {
+  id: string;
+  signalement_id: string;
+  type: EnqueteActionType;
+  date_action: string;
+  lieu?: string;
+  description: string;
+  echeance?: string;
+  statut: EnqueteActionStatut;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Animal lié au dossier de signalement (plusieurs possibles, sans ressaisie). */
+export interface SignalementAnimalLink {
+  signalement_id: string;
+  animal_id: string;
+  role: SignalementAnimalRole;
+  created_at: string;
 }
 
 export type TransportType = 'covoiturage' | 'transporteur' | 'benevole';
@@ -375,6 +473,8 @@ export type DocumentModule =
   | 'pension'
   | 'transport'
   | 'communication'
+  | 'icad'
+  | 'sante'
   | 'autre';
 
 export type DocumentType =
@@ -453,12 +553,15 @@ export interface Communication {
 
 export type AlertType =
   | 'vaccin'
+  | 'vermifuge'
   | 'icad'
   | 'audience'
   | 'post_visite'
   | 'pension_longue'
   | 'echeance_contrat'
   | 'relance_adoption'
+  | 'contrat_fa'
+  | 'hebdo_fa'
   | 'autre';
 
 export type AlertStatut = 'active' | 'traitée' | 'ignorée';
@@ -467,6 +570,8 @@ export type AlertPriorite = 'faible' | 'normal' | 'urgent' | 'critique';
 export interface Alert {
   id: string;
   animal_id?: string;
+  famille_accueil_id?: string;
+  justice_case_id?: string;
   type: AlertType;
   titre: string;
   message?: string;
@@ -475,6 +580,7 @@ export interface Alert {
   priorite: AlertPriorite;
   created_at: string;
   animal?: Animal;
+  famille_accueil?: FamilleAccueil;
 }
 
 export type TachePriorite = 'faible' | 'normale' | 'urgente' | 'critique';
@@ -515,13 +621,103 @@ export type RegistreType = 'entree' | 'sortie';
 export interface RegistreEntreeSortie {
   id: string;
   animal_id: string;
-  numero_entree: string;
-  type: RegistreType;
+  type_mouvement: RegistreType;
   date: string;
   motif?: string;
-  provenance_destination?: string;
+  provenance?: string;
+  destination?: string;
   created_at: string;
   animal?: Animal;
+}
+
+export type IcadDemandeStatut = 'a_effectuer' | 'envoyee' | 'en_attente' | 'validee';
+export type IcadModeEnvoi = 'courrier' | 'email' | 'main_propre' | 'autre';
+
+/**
+ * Demande de changement de détenteur ICAD.
+ * Historique jamais écrasé : chaque demande est une étape figée
+ * (ancien détenteur, dates, mode d'envoi, statut, justificatifs).
+ */
+export interface IcadDemande {
+  id: string;
+  animal_id: string;
+  ancien_detenteur_nom?: string;
+  ancien_detenteur_prenom?: string;
+  ancien_detenteur_contact?: string;
+  date_envoi_demande?: string;
+  mode_envoi?: IcadModeEnvoi;
+  statut: IcadDemandeStatut;
+  date_transfert_epa?: string;
+  notes?: string;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type VaccinationTypeInjection = 'primo' | 'rappel' | 'complement';
+export type SanteSoinType = 'vermifuge' | 'antiparasitaire' | 'sterilisation' | 'diagnose_morphologique';
+
+/** Injection de vaccin : valence distincte (rage, DHPPi...), primo ou rappel, échéance propre. */
+export interface Vaccination {
+  id: string;
+  animal_id: string;
+  vaccin: string;
+  type_injection: VaccinationTypeInjection;
+  date_injection: string;
+  date_prochain_rappel?: string;
+  veterinaire_id?: string;
+  notes?: string;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Soin : vermifuge, antiparasitaire, stérilisation ou diagnose morphologique. */
+export interface SanteSoin {
+  id: string;
+  animal_id: string;
+  type: SanteSoinType;
+  produit?: string;
+  date_soin: string;
+  dosage?: string;
+  prochain_traitement?: string;
+  resultat?: string;
+  veterinaire_id?: string;
+  notes?: string;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type ObservationType = 'arrivee' | 'sante' | 'comportement' | 'autre';
+
+/** Observation datée : état initial à l'arrivée + évolution (jamais écrasée). */
+export interface AnimalObservation {
+  id: string;
+  animal_id: string;
+  date_observation: string;
+  type: ObservationType;
+  contenu: string;
+  created_by?: string;
+  created_at: string;
+}
+
+/** Déclaration de morsure : évaluation comportementale, risque 1-4, pension éducative. */
+export interface Morsure {
+  id: string;
+  animal_id: string;
+  date_declaration: string;
+  lieu?: string;
+  circonstances?: string;
+  victime_description?: string;
+  niveau_risque?: number;
+  evaluation_comportementale?: string;
+  mesures_imposees?: string;
+  pension_educative?: boolean;
+  suivi?: string;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface AuditLogEntry {

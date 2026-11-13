@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Plus, Dog, Search, Filter } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { PageHeader, LoadingSpinner, EmptyState, Badge } from '../components/ui';
@@ -25,11 +25,15 @@ const statutFilters: AnimalStatut[] = [
 ];
 
 export function AnimauxListPage() {
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [animaux, setAnimaux] = useState<Animal[]>([]);
   const [search, setSearch] = useState('');
-  const [statutFilter, setStatutFilter] = useState<AnimalStatut | 'all'>('all');
-  const [quickFilter, setQuickFilter] = useState<string>('all');
+  const [statutFilter, setStatutFilter] = useState<AnimalStatut | 'all'>(() => {
+    const s = searchParams.get('statut');
+    return statutFilters.includes(s as AnimalStatut) ? (s as AnimalStatut) : 'all';
+  });
+  const [quickFilter, setQuickFilter] = useState<string>(() => searchParams.get('quick') ?? 'all');
 
   useEffect(() => {
     fetchAnimaux();

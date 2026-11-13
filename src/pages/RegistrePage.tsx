@@ -23,6 +23,8 @@ const emptyForm = {
   provenance_destination: '',
 };
 
+const provDest = (e: RegistreEntreeSortie) => e.type_mouvement === 'entree' ? (e.provenance ?? e.destination) : (e.destination ?? e.provenance);
+
 export function RegistrePage() {
   const [loading, setLoading] = useState(true);
   const [entrees, setEntrees] = useState<RegistreEntreeSortie[]>([]);
@@ -64,11 +66,10 @@ export function RegistrePage() {
   const filtered = entrees.filter((e) => {
     const matchSearch =
       !search ||
-      e.numero_entree.toLowerCase().includes(search.toLowerCase()) ||
       e.motif?.toLowerCase().includes(search.toLowerCase()) ||
-      e.provenance_destination?.toLowerCase().includes(search.toLowerCase()) ||
+      provDest(e)?.toLowerCase().includes(search.toLowerCase()) ||
       e.animal?.nom.toLowerCase().includes(search.toLowerCase());
-    const matchType = typeFilter === 'all' || e.type === typeFilter;
+    const matchType = typeFilter === 'all' || e.type_mouvement === typeFilter;
     return matchSearch && matchType;
   });
 
@@ -79,11 +80,12 @@ export function RegistrePage() {
 
     const payload = {
       animal_id: form.animal_id,
-      numero_entree: `ENT-${Date.now()}`,
-      type: form.type,
+      type_mouvement: form.type,
       motif: form.motif || null,
-      provenance_destination: form.provenance_destination || null,
-      date: new Date().toISOString(),
+      ...(form.type === 'entree'
+        ? { provenance: form.provenance_destination || null }
+        : { destination: form.provenance_destination || null }),
+      date: new Date().toISOString().split('T')[0],
     };
 
     try {
@@ -159,7 +161,6 @@ export function RegistrePage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-neutral-200 bg-neutral-50 text-left text-xs font-medium uppercase tracking-wider text-neutral-500">
-                  <th className="px-4 py-3">N° entrée</th>
                   <th className="px-4 py-3">Animal</th>
                   <th className="px-4 py-3">Type</th>
                   <th className="px-4 py-3">Date</th>
@@ -174,7 +175,6 @@ export function RegistrePage() {
                     onClick={() => setDetailEntree(e)}
                     className="cursor-pointer table-row-hover"
                   >
-                    <td className="px-4 py-3 font-mono text-sm font-medium text-neutral-900">{e.numero_entree}</td>
                     <td className="px-4 py-3">
                       {e.animal ? (
                         <Link
@@ -189,11 +189,11 @@ export function RegistrePage() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <Badge className={typeColors[e.type]}>{typeLabels[e.type]}</Badge>
+                      <Badge className={typeColors[e.type_mouvement]}>{typeLabels[e.type_mouvement]}</Badge>
                     </td>
                     <td className="px-4 py-3 text-sm text-neutral-500">{formatDate(e.date)}</td>
                     <td className="px-4 py-3 text-sm text-neutral-600">{e.motif || '—'}</td>
-                    <td className="px-4 py-3 text-sm text-neutral-600">{e.provenance_destination || '—'}</td>
+                    <td className="px-4 py-3 text-sm text-neutral-600">{provDest(e) || '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -270,12 +270,9 @@ export function RegistrePage() {
         {detailEntree && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="font-mono text-sm font-medium text-neutral-900">{detailEntree.numero_entree}</p>
-                <p className="text-xs text-neutral-500">{formatDate(detailEntree.date)}</p>
-              </div>
-              <Badge className={typeColors[detailEntree.type]}>
-                {typeLabels[detailEntree.type]}
+              <p className="text-sm text-neutral-500">{formatDate(detailEntree.date)}</p>
+              <Badge className={typeColors[detailEntree.type_mouvement]}>
+                {typeLabels[detailEntree.type_mouvement]}
               </Badge>
             </div>
 
@@ -299,12 +296,12 @@ export function RegistrePage() {
               </div>
             )}
 
-            {detailEntree.provenance_destination && (
+            {provDest(detailEntree) && (
               <div className="card p-3">
                 <div className="flex items-center gap-2 text-xs font-medium uppercase text-neutral-400">
                   <FileText size={14} /> Provenance / Destination
                 </div>
-                <p className="mt-1 text-sm text-neutral-700">{detailEntree.provenance_destination}</p>
+                <p className="mt-1 text-sm text-neutral-700">{provDest(detailEntree)}</p>
               </div>
             )}
           </div>

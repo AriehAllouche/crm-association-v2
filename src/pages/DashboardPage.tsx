@@ -29,7 +29,25 @@ import {
   formatDate,
 } from '../lib/constants';
 import { generateAllAlerts } from '../lib/alerts';
+import { calculateGlobalStats } from '../lib/notifications';
 import type { Animal, Alert, Tache } from '../types';
+
+/** Encadré statistique cliquable : renvoie vers la liste correspondante. */
+function StatLink({ to, value, label, colorClass, valueClass = '', small = false }: {
+  to: string;
+  value: React.ReactNode;
+  label: string;
+  colorClass: string;
+  valueClass?: string;
+  small?: boolean;
+}) {
+  return (
+    <Link to={to} className={`block rounded-lg p-4 text-center transition-all duration-150 hover:shadow-md hover:-translate-y-0.5 ${colorClass}`}>
+      <p className={`font-bold ${small ? 'text-xl' : 'text-2xl'} ${valueClass}`}>{value}</p>
+      <p className={small ? 'text-xs text-neutral-600' : 'text-sm text-neutral-600'}>{label}</p>
+    </Link>
+  );
+}
 
 export function DashboardPage() {
   const { profile } = useAuth();
@@ -80,6 +98,9 @@ export function DashboardPage() {
     // Générer automatiquement les alertes
     await generateAllAlerts();
 
+    // Calculer les statistiques globales en temps réel
+    const globalStats = await calculateGlobalStats();
+
     const [animauxRes, signalementsRes, adoptionsRes, depensesRes, alertsRes, famillesRes, visitesRes, tachesRes] = await Promise.all([
       supabase.from('animals').select('*').order('created_at', { ascending: false }).limit(5),
       supabase.from('signalements').select('*', { count: 'exact' }),
@@ -96,7 +117,7 @@ export function DashboardPage() {
     const familles = (famillesRes.data ?? []) as any[];
 
     setStats({
-      totalAnimaux: animaux.length,
+      totalAnimaux: globalStats.total_animaux,
       aAdopter: animaux.filter((a) => a.statut === 'a_adopter').length,
       enFamilleAccueil: animaux.filter((a) => a.statut === 'en_famille_accueil').length,
       enPension: animaux.filter((a) => a.statut === 'en_pension').length,
@@ -108,9 +129,9 @@ export function DashboardPage() {
       signalementsOuverts: signalements.filter((s) => ['nouveau', 'en_cours'].includes(s.statut)).length,
       signalementsUrgents: signalements.filter((s) => s.urgence === 'critique' || s.urgence === 'urgent').length,
       adoptionsEnCours: adoptionsRes.count ?? 0,
-      famillesActives: familles.filter((f) => f.contrat_actif).length,
-      placesLibres: familles.reduce((sum, f) => sum + (f.capacite_max || 0) - (f.animaux_actuels || 0), 0),
-      coutTotal: (depensesRes.data ?? []).reduce((sum, d) => sum + (d.montant ?? 0), 0),
+      famillesActives: globalStats.nombre_familles_actives,
+      placesLibres: globalStats.places_libres_total,
+      coutTotal: globalStats.cout_total_annee,
     });
 
     setAlerts((alertsRes.data ?? []) as Alert[]);
@@ -132,22 +153,22 @@ export function DashboardPage() {
             <p className="mt-1 text-primary-100">📅 {getCurrentDate()}</p>
           </div>
           <div className="flex gap-4 text-sm">
-            <div className="flex items-center gap-2">
+            <Link to="/signalements" className="flex items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:bg-white/20">
               <AlertTriangle size={20} />
               <span>{stats.signalementsUrgents} urgences</span>
-            </div>
-            <div className="flex items-center gap-2">
+            </Link>
+            <Link to="/animaux" className="flex items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:bg-white/20">
               <Calendar size={20} />
               <span>{todayEvents.length} RDV aujourd'hui</span>
-            </div>
-            <div className="flex items-center gap-2">
+            </Link>
+            <Link to="/animaux" className="flex items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:bg-white/20">
               <Dog size={20} />
               <span>{stats.totalAnimaux} animaux en charge</span>
-            </div>
-            <div className="flex items-center gap-2">
+            </Link>
+            <Link to="/adoptions" className="flex items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:bg-white/20">
               <HeartHandshake size={20} />
               <span>{stats.adoptionsEnCours} adoptions prévues</span>
-            </div>
+            </Link>
           </div>
         </div>
       </div>
@@ -190,22 +211,10 @@ export function DashboardPage() {
         {!collapsedBlocks.urgences && (
           <div className="p-5">
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <div className="rounded-lg bg-error-50 p-4">
-                <p className="text-2xl font-bold text-error-600">{stats.signalementsUrgents}</p>
-                <p className="text-sm text-neutral-600">Signalements urgents</p>
-              </div>
-              <div className="rounded-lg bg-error-50 p-4">
-                <p className="text-2xl font-bold text-error-600">{stats.hospitalises}</p>
-                <p className="text-sm text-neutral-600">Animaux hospitalisés</p>
-              </div>
-              <div className="rounded-lg bg-warning-50 p-4">
-                <p className="text-2xl font-bold text-warning-600">{stats.urgencesPlacement}</p>
-                <p className="text-sm text-neutral-600">Urgences placement</p>
-              </div>
-              <div className="rounded-lg bg-warning-50 p-4">
-                <p className="text-2xl font-bold text-warning-600">{stats.sousRequisition}</p>
-                <p className="text-sm text-neutral-600">Sous réquisition</p>
-              </div>
+              <StatLink to="/signalements" value={stats.signalementsUrgents} label="Signalements urgents" colorClass="bg-error-50" valueClass="text-error-600" />
+              <StatLink to="/animaux?statut=en_soins" value={stats.hospitalises} label="Animaux hospitalisés" colorClass="bg-error-50" valueClass="text-error-600" />
+              <StatLink to="/animaux?statut=a_adopter" value={stats.urgencesPlacement} label="Urgences placement" colorClass="bg-warning-50" valueClass="text-warning-600" />
+              <StatLink to="/animaux?quick=requisition" value={stats.sousRequisition} label="Sous réquisition" colorClass="bg-warning-50" valueClass="text-warning-600" />
             </div>
           </div>
         )}
@@ -260,30 +269,12 @@ export function DashboardPage() {
         {!collapsedBlocks.synthese && (
           <div className="p-5">
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-6">
-              <div className="rounded-lg bg-success-50 p-4 text-center">
-                <p className="text-2xl font-bold text-success-600">{stats.enFamilleAccueil}</p>
-                <p className="text-xs text-neutral-600">En FA</p>
-              </div>
-              <div className="rounded-lg bg-warning-50 p-4 text-center">
-                <p className="text-2xl font-bold text-warning-600">{stats.enPension}</p>
-                <p className="text-xs text-neutral-600">Pension</p>
-              </div>
-              <div className="rounded-lg bg-error-50 p-4 text-center">
-                <p className="text-2xl font-bold text-error-600">{stats.hospitalises}</p>
-                <p className="text-xs text-neutral-600">Hospitalisés</p>
-              </div>
-              <div className="rounded-lg bg-accent-50 p-4 text-center">
-                <p className="text-2xl font-bold text-accent-600">{stats.sousRequisition}</p>
-                <p className="text-xs text-neutral-600">Réquisition</p>
-              </div>
-              <div className="rounded-lg bg-primary-50 p-4 text-center">
-                <p className="text-2xl font-bold text-primary-600">{stats.aAdopter}</p>
-                <p className="text-xs text-neutral-600">À adopter</p>
-              </div>
-              <div className="rounded-lg bg-neutral-50 p-4 text-center">
-                <p className="text-2xl font-bold text-neutral-600">{stats.urgencesPlacement}</p>
-                <p className="text-xs text-neutral-600">Urgences</p>
-              </div>
+              <StatLink to="/animaux?statut=en_famille_accueil" value={stats.enFamilleAccueil} label="En FA" colorClass="bg-success-50" valueClass="text-success-600" small />
+              <StatLink to="/animaux?statut=en_pension" value={stats.enPension} label="Pension" colorClass="bg-warning-50" valueClass="text-warning-600" small />
+              <StatLink to="/animaux?statut=en_soins" value={stats.hospitalises} label="Hospitalisés" colorClass="bg-error-50" valueClass="text-error-600" small />
+              <StatLink to="/animaux?quick=requisition" value={stats.sousRequisition} label="Réquisition" colorClass="bg-accent-50" valueClass="text-accent-600" small />
+              <StatLink to="/animaux?statut=a_adopter" value={stats.aAdopter} label="À adopter" colorClass="bg-primary-50" valueClass="text-primary-600" small />
+              <StatLink to="/animaux?statut=a_adopter" value={stats.urgencesPlacement} label="Urgences" colorClass="bg-neutral-50" valueClass="text-neutral-600" small />
             </div>
           </div>
         )}
@@ -303,10 +294,7 @@ export function DashboardPage() {
         {!collapsedBlocks.fa && (
           <div className="p-5">
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-              <div className="rounded-lg bg-success-50 p-4 text-center">
-                <p className="text-2xl font-bold text-success-600">{stats.placesLibres}</p>
-                <p className="text-sm text-neutral-600">Places libres</p>
-              </div>
+              <StatLink to="/familles-accueil" value={stats.placesLibres} label="Places libres" colorClass="bg-success-50" valueClass="text-success-600" />
               <div className="rounded-lg bg-warning-50 p-4 text-center">
                 <p className="text-2xl font-bold text-warning-600">0</p>
                 <p className="text-sm text-neutral-600">Pré-visites à programmer</p>
@@ -401,10 +389,7 @@ export function DashboardPage() {
         {!collapsedBlocks.communication && (
           <div className="p-5">
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-              <div className="rounded-lg bg-warning-50 p-4 text-center">
-                <p className="text-2xl font-bold text-warning-600">{stats.aAdopter}</p>
-                <p className="text-sm text-neutral-600">Animaux non publiés</p>
-              </div>
+              <StatLink to="/animaux?statut=a_adopter" value={stats.aAdopter} label="Animaux non publiés" colorClass="bg-warning-50" valueClass="text-warning-600" />
               <div className="rounded-lg bg-neutral-50 p-4 text-center">
                 <p className="text-2xl font-bold text-neutral-600">0</p>
                 <p className="text-sm text-neutral-600">Demandes FA à traiter</p>
