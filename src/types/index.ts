@@ -292,6 +292,13 @@ export interface Veterinaire {
   tarif_consultation?: number;
   tarif_chirurgie?: number;
   tarif_sterilisation?: number;
+  tarif_vaccination?: number;
+  tarif_diagnose?: number;
+  tarif_evaluation?: number;
+  diagnose_morpho?: boolean;
+  evaluation_comportementale?: boolean;
+  pec_requisitions?: boolean;
+  departement?: string;
   notes?: string;
   partenaire: boolean;
   created_at: string;

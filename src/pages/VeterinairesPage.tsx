@@ -23,11 +23,18 @@ const emptyForm = {
   adresse: '',
   code_postal: '',
   ville: '',
+  departement: '',
   telephone: '',
   email: '',
   tarif_consultation: '',
   tarif_chirurgie: '',
   tarif_sterilisation: '',
+  tarif_vaccination: '',
+  tarif_diagnose: '',
+  tarif_evaluation: '',
+  diagnose_morpho: false,
+  evaluation_comportementale: false,
+  pec_requisitions: false,
   notes: '',
   partenaire: false,
 };
@@ -36,6 +43,8 @@ export function VeterinairesPage() {
   const [loading, setLoading] = useState(true);
   const [veterinaires, setVeterinaires] = useState<Veterinaire[]>([]);
   const [search, setSearch] = useState('');
+  const [filterDept, setFilterDept] = useState('');
+  const [filterPrestation, setFilterPrestation] = useState<string>('');
 
   const [modalOpen, setModalOpen] = useState(false);
   const [detailVeto, setDetailVeto] = useState<Veterinaire | null>(null);
@@ -123,6 +132,16 @@ export function VeterinairesPage() {
   };
 
   const filtered = veterinaires.filter((v) => {
+    if (filterDept) {
+      const vd = (v.departement ?? '').toLowerCase();
+      const vcp = (v.code_postal ?? '').slice(0, 2).toLowerCase();
+      const fd = filterDept.toLowerCase();
+      if (!vd.startsWith(fd) && !vcp.startsWith(fd)) return false;
+    }
+    if (filterPrestation === 'partenaire' && !v.partenaire) return false;
+    if (filterPrestation === 'diagnose' && !v.diagnose_morpho) return false;
+    if (filterPrestation === 'evaluation' && !v.evaluation_comportementale) return false;
+    if (filterPrestation === 'requisitions' && !v.pec_requisitions) return false;
     if (!search) return true;
     const q = search.toLowerCase();
     return (
@@ -145,11 +164,18 @@ export function VeterinairesPage() {
       adresse: form.adresse || null,
       code_postal: form.code_postal || null,
       ville: form.ville || null,
+      departement: form.departement || null,
       telephone: form.telephone || null,
       email: form.email || null,
       tarif_consultation: form.tarif_consultation ? Number(form.tarif_consultation) : null,
       tarif_chirurgie: form.tarif_chirurgie ? Number(form.tarif_chirurgie) : null,
       tarif_sterilisation: form.tarif_sterilisation ? Number(form.tarif_sterilisation) : null,
+      tarif_vaccination: form.tarif_vaccination ? Number(form.tarif_vaccination) : null,
+      tarif_diagnose: form.tarif_diagnose ? Number(form.tarif_diagnose) : null,
+      tarif_evaluation: form.tarif_evaluation ? Number(form.tarif_evaluation) : null,
+      diagnose_morpho: form.diagnose_morpho,
+      evaluation_comportementale: form.evaluation_comportementale,
+      pec_requisitions: form.pec_requisitions,
       notes: form.notes || null,
       partenaire: form.partenaire,
     };
@@ -182,16 +208,36 @@ export function VeterinairesPage() {
         }
       />
 
-      {/* Search */}
-      <div className="mb-4 relative">
-        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+      {/* Search & filters */}
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+          <input
+            type="text"
+            placeholder="Rechercher par nom, clinique, ville..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="input pl-10"
+          />
+        </div>
         <input
           type="text"
-          placeholder="Rechercher par nom, clinique, ville..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="input pl-10"
+          placeholder="Dépt (ex: 69)"
+          value={filterDept}
+          onChange={(e) => setFilterDept(e.target.value)}
+          className="input sm:w-32"
         />
+        <select
+          value={filterPrestation}
+          onChange={(e) => setFilterPrestation(e.target.value)}
+          className="input sm:w-52"
+        >
+          <option value="">Toutes prestations</option>
+          <option value="partenaire">Partenaire EPA</option>
+          <option value="diagnose">Diagnose morphologique</option>
+          <option value="evaluation">Évaluation comportementale</option>
+          <option value="requisitions">Réquisitions judiciaires</option>
+        </select>
       </div>
 
       {/* Grid */}
@@ -229,6 +275,18 @@ export function VeterinairesPage() {
                     <Handshake size={12} className="mr-1" />
                     Partenaire
                   </Badge>
+                )}
+              </div>
+
+              <div className="mt-2 flex flex-wrap gap-1">
+                {v.diagnose_morpho && (
+                  <Badge className="bg-secondary-100 text-secondary-700">Diagnose</Badge>
+                )}
+                {v.evaluation_comportementale && (
+                  <Badge className="bg-accent-100 text-accent-700">Éval. comport.</Badge>
+                )}
+                {v.pec_requisitions && (
+                  <Badge className="bg-warning-100 text-warning-800">Réquisitions</Badge>
                 )}
               </div>
 
@@ -339,6 +397,16 @@ export function VeterinairesPage() {
               />
             </div>
             <div>
+              <label className="label">Département</label>
+              <input
+                type="text"
+                value={form.departement}
+                onChange={(e) => setForm({ ...form, departement: e.target.value })}
+                className="input"
+                placeholder="69"
+              />
+            </div>
+            <div>
               <label className="label">Téléphone</label>
               <input
                 type="tel"
@@ -394,6 +462,42 @@ export function VeterinairesPage() {
                 placeholder="180"
               />
             </div>
+            <div>
+              <label className="label">Tarif vaccination (€)</label>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={form.tarif_vaccination}
+                onChange={(e) => setForm({ ...form, tarif_vaccination: e.target.value })}
+                className="input"
+                placeholder="35"
+              />
+            </div>
+            <div>
+              <label className="label">Tarif diagnose (€)</label>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={form.tarif_diagnose}
+                onChange={(e) => setForm({ ...form, tarif_diagnose: e.target.value })}
+                className="input"
+                placeholder="80"
+              />
+            </div>
+            <div>
+              <label className="label">Tarif évaluation comport. (€)</label>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={form.tarif_evaluation}
+                onChange={(e) => setForm({ ...form, tarif_evaluation: e.target.value })}
+                className="input"
+                placeholder="120"
+              />
+            </div>
             <div className="sm:col-span-2">
               <label className="label">Notes</label>
               <textarea
@@ -413,6 +517,35 @@ export function VeterinairesPage() {
                   className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
                 />
                 Vétérinaire partenaire de l'association
+              </label>
+            </div>
+            <div className="sm:col-span-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <label className="flex items-center gap-2 text-sm text-neutral-700">
+                <input
+                  type="checkbox"
+                  checked={form.diagnose_morpho}
+                  onChange={(e) => setForm({ ...form, diagnose_morpho: e.target.checked })}
+                  className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+                />
+                Diagnose morphologique
+              </label>
+              <label className="flex items-center gap-2 text-sm text-neutral-700">
+                <input
+                  type="checkbox"
+                  checked={form.evaluation_comportementale}
+                  onChange={(e) => setForm({ ...form, evaluation_comportementale: e.target.checked })}
+                  className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+                />
+                Évaluation comportementale
+              </label>
+              <label className="flex items-center gap-2 text-sm text-neutral-700">
+                <input
+                  type="checkbox"
+                  checked={form.pec_requisitions}
+                  onChange={(e) => setForm({ ...form, pec_requisitions: e.target.checked })}
+                  className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+                />
+                Prise en charge réquisitions
               </label>
             </div>
           </div>
@@ -454,6 +587,18 @@ export function VeterinairesPage() {
               </div>
             </div>
 
+            <div className="flex flex-wrap gap-1.5">
+              {detailVeto.diagnose_morpho && (
+                <Badge className="bg-secondary-100 text-secondary-700">Diagnose morphologique</Badge>
+              )}
+              {detailVeto.evaluation_comportementale && (
+                <Badge className="bg-accent-100 text-accent-700">Évaluation comportementale</Badge>
+              )}
+              {detailVeto.pec_requisitions && (
+                <Badge className="bg-warning-100 text-warning-800">Réquisitions judiciaires</Badge>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {detailVeto.telephone && (
                 <div className="card p-3">
@@ -487,24 +632,30 @@ export function VeterinairesPage() {
 
             <div className="card p-4">
               <h4 className="mb-3 text-sm font-semibold text-neutral-900">Tarifs</h4>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                 <div className="rounded-lg bg-neutral-50 px-3 py-2">
                   <p className="text-xs text-neutral-500">Consultation</p>
-                  <p className="text-sm font-semibold text-neutral-900">
-                    {formatCurrency(detailVeto.tarif_consultation)}
-                  </p>
+                  <p className="text-sm font-semibold text-neutral-900">{formatCurrency(detailVeto.tarif_consultation)}</p>
                 </div>
                 <div className="rounded-lg bg-neutral-50 px-3 py-2">
                   <p className="text-xs text-neutral-500">Chirurgie</p>
-                  <p className="text-sm font-semibold text-neutral-900">
-                    {formatCurrency(detailVeto.tarif_chirurgie)}
-                  </p>
+                  <p className="text-sm font-semibold text-neutral-900">{formatCurrency(detailVeto.tarif_chirurgie)}</p>
                 </div>
                 <div className="rounded-lg bg-neutral-50 px-3 py-2">
-                  <p className="text-xs text-neutral-500">Sterilisation</p>
-                  <p className="text-sm font-semibold text-neutral-900">
-                    {formatCurrency(detailVeto.tarif_sterilisation)}
-                  </p>
+                  <p className="text-xs text-neutral-500">Stérilisation</p>
+                  <p className="text-sm font-semibold text-neutral-900">{formatCurrency(detailVeto.tarif_sterilisation)}</p>
+                </div>
+                <div className="rounded-lg bg-neutral-50 px-3 py-2">
+                  <p className="text-xs text-neutral-500">Vaccination</p>
+                  <p className="text-sm font-semibold text-neutral-900">{formatCurrency(detailVeto.tarif_vaccination)}</p>
+                </div>
+                <div className="rounded-lg bg-neutral-50 px-3 py-2">
+                  <p className="text-xs text-neutral-500">Diagnose</p>
+                  <p className="text-sm font-semibold text-neutral-900">{formatCurrency(detailVeto.tarif_diagnose)}</p>
+                </div>
+                <div className="rounded-lg bg-neutral-50 px-3 py-2">
+                  <p className="text-xs text-neutral-500">Évaluation comport.</p>
+                  <p className="text-sm font-semibold text-neutral-900">{formatCurrency(detailVeto.tarif_evaluation)}</p>
                 </div>
               </div>
             </div>
