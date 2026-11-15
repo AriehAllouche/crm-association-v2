@@ -425,16 +425,7 @@ export function AnimalFormPage() {
                 placeholder="Lieu de récupération de l'animal"
               />
             </div>
-            <div>
-              <label className="label">URL Photo</label>
-              <input
-                type="text"
-                value={form.photo_url}
-                onChange={(e) => setForm({ ...form, photo_url: e.target.value })}
-                className="input"
-                placeholder="https://..."
-              />
-            </div>
+
           </div>
         </div>
 
@@ -618,26 +609,6 @@ export function AnimalFormPage() {
         {/* Santé & comportement */}
         <div className="card p-6">
           <h2 className="mb-4 font-heading text-lg font-semibold text-neutral-900">Santé & comportement</h2>
-          <div className="mb-4 flex gap-6">
-            <label className="flex items-center gap-2 text-sm text-neutral-700">
-              <input
-                type="checkbox"
-                checked={form.sterilise}
-                onChange={(e) => setForm({ ...form, sterilise: e.target.checked })}
-                className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
-              />
-              Stérilisé(e)
-            </label>
-            <label className="flex items-center gap-2 text-sm text-neutral-700">
-              <input
-                type="checkbox"
-                checked={form.vaccinne}
-                onChange={(e) => setForm({ ...form, vaccinne: e.target.checked })}
-                className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
-              />
-              Vacciné(e)
-            </label>
-          </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="label">État de santé</label>

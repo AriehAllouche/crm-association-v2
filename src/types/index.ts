@@ -245,7 +245,6 @@ export interface MaterielPret {
 export type AdoptionStatut =
   | 'candidature'
   | 'pre_visite'
-  | 'visio'
   | 'validee'
   | 'contrat_signe'
   | 'paiement_recu'
@@ -265,7 +264,6 @@ export interface Adoption {
   statut: AdoptionStatut;
   date_candidature: string;
   date_pre_visite?: string;
-  date_visio?: string;
   date_validation?: string;
   date_contrat?: string;
   montant_adoption?: number;
@@ -273,6 +271,12 @@ export interface Adoption {
   date_icad_change?: string;
   date_post_visite?: string;
   post_visite_effectuee: boolean;
+  caution_sterilisation?: number;
+  caution_versee?: boolean;
+  caution_restituee?: boolean;
+  date_caution_versement?: string;
+  date_caution_restitution?: string;
+  icad_animal?: string;
   notes?: string;
   created_at: string;
   updated_at: string;

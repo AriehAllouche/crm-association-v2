@@ -70,6 +70,10 @@ export function DashboardPage() {
     famillesActives: 0,
     placesLibres: 0,
     coutTotal: 0,
+    vaccinsEnRetard: 0,
+    vaccinsAVenir: 0,
+    traitementsEnCours: 0,
+    faSansNouvelles: 0,
   });
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [todayEvents, setTodayEvents] = useState<any[]>([]);
@@ -101,20 +105,30 @@ export function DashboardPage() {
     // Calculer les statistiques globales en temps réel
     const globalStats = await calculateGlobalStats();
 
-    const [animauxRes, signalementsRes, adoptionsRes, depensesRes, alertsRes, famillesRes, visitesRes, tachesRes] = await Promise.all([
-      supabase.from('animals').select('*').order('created_at', { ascending: false }).limit(5),
+    const [animauxRes, signalementsRes, adoptionsRes, depensesRes, alertsRes, famillesRes, visitesRes, tachesRes, vaccinationsRes, santeSoinsRes] = await Promise.all([
+      supabase.from('animals').select('*', { count: 'exact' }),
       supabase.from('signalements').select('*', { count: 'exact' }),
       supabase.from('adoptions').select('*', { count: 'exact' }).not('statut', 'in', '("adoptee","refusee")'),
       supabase.from('depenses').select('montant'),
       supabase.from('alerts').select('*, animal:animals(*)').eq('statut', 'active').order('date_echeance').limit(10),
       supabase.from('famille_accueils').select('*'),
-      supabase.from('visites_veterinaires').select('*').gte('date_visite', new Date().toISOString().split('T')[0]),
+      supabase.from('veterinaire_visites').select('*').gte('date_visite', new Date().toISOString().split('T')[0]),
       supabase.from('taches').select('*').eq('assigne_a', profile?.id).neq('statut', 'termine').order('date_echeance', { ascending: true }).limit(5),
+      supabase.from('vaccinations').select('date_prochain_rappel').not('date_prochain_rappel', 'is', null),
+      supabase.from('sante_soins').select('type, prochain_traitement').not('prochain_traitement', 'is', null),
     ]);
 
     const animaux = (animauxRes.data ?? []) as Animal[];
     const signalements = (signalementsRes.data ?? []) as any[];
     const familles = (famillesRes.data ?? []) as any[];
+    const vaccinations = (vaccinationsRes.data ?? []) as any[];
+    const santeSoins = (santeSoinsRes.data ?? []) as any[];
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    const vaccinsEnRetard = vaccinations.filter(v => v.date_prochain_rappel < todayStr).length;
+    const vaccinsAVenir = vaccinations.filter(v => v.date_prochain_rappel >= todayStr).length;
+    const traitementsEnCours = santeSoins.filter(s => s.prochain_traitement >= todayStr).length;
+    const faSansNouvelles = familles.filter(f => f.animaux_actuels > 0 && f.contrat_actif).length;
 
     setStats({
       totalAnimaux: globalStats.total_animaux,
@@ -132,6 +146,10 @@ export function DashboardPage() {
       famillesActives: globalStats.nombre_familles_actives,
       placesLibres: globalStats.places_libres_total,
       coutTotal: globalStats.cout_total_annee,
+      vaccinsEnRetard,
+      vaccinsAVenir,
+      traitementsEnCours,
+      faSansNouvelles,
     });
 
     setAlerts((alertsRes.data ?? []) as Alert[]);
@@ -295,14 +313,8 @@ export function DashboardPage() {
           <div className="p-5">
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
               <StatLink to="/familles-accueil" value={stats.placesLibres} label="Places libres" colorClass="bg-success-50" valueClass="text-success-600" />
-              <div className="rounded-lg bg-warning-50 p-4 text-center">
-                <p className="text-2xl font-bold text-warning-600">0</p>
-                <p className="text-sm text-neutral-600">Pré-visites à programmer</p>
-              </div>
-              <div className="rounded-lg bg-error-50 p-4 text-center">
-                <p className="text-2xl font-bold text-error-600">0</p>
-                <p className="text-sm text-neutral-600">FA sans nouvelles</p>
-              </div>
+              <StatLink to="/adoptions?statut=pre_visite" value={0} label="Pré-visites à programmer" colorClass="bg-warning-50" valueClass="text-warning-600" />
+              <StatLink to="/familles-accueil" value={stats.faSansNouvelles} label="FA sans nouvelles" colorClass="bg-error-50" valueClass="text-error-600" />
             </div>
           </div>
         )}
@@ -322,18 +334,9 @@ export function DashboardPage() {
         {!collapsedBlocks.sante && (
           <div className="p-5">
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-              <div className="rounded-lg bg-error-50 p-4 text-center">
-                <p className="text-2xl font-bold text-error-600">0</p>
-                <p className="text-sm text-neutral-600">Vaccins en retard</p>
-              </div>
-              <div className="rounded-lg bg-warning-50 p-4 text-center">
-                <p className="text-2xl font-bold text-warning-600">0</p>
-                <p className="text-sm text-neutral-600">Vaccins à venir</p>
-              </div>
-              <div className="rounded-lg bg-neutral-50 p-4 text-center">
-                <p className="text-2xl font-bold text-neutral-600">0</p>
-                <p className="text-sm text-neutral-600">Traitements en cours</p>
-              </div>
+              <StatLink to="/animaux" value={stats.vaccinsEnRetard} label="Vaccins en retard" colorClass="bg-error-50" valueClass="text-error-600" />
+              <StatLink to="/animaux" value={stats.vaccinsAVenir} label="Vaccins à venir" colorClass="bg-warning-50" valueClass="text-warning-600" />
+              <StatLink to="/animaux" value={stats.traitementsEnCours} label="Traitements en cours" colorClass="bg-neutral-50" valueClass="text-neutral-600" />
             </div>
           </div>
         )}
@@ -390,14 +393,8 @@ export function DashboardPage() {
           <div className="p-5">
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
               <StatLink to="/animaux?statut=a_adopter" value={stats.aAdopter} label="Animaux non publiés" colorClass="bg-warning-50" valueClass="text-warning-600" />
-              <div className="rounded-lg bg-neutral-50 p-4 text-center">
-                <p className="text-2xl font-bold text-neutral-600">0</p>
-                <p className="text-sm text-neutral-600">Demandes FA à traiter</p>
-              </div>
-              <div className="rounded-lg bg-neutral-50 p-4 text-center">
-                <p className="text-2xl font-bold text-neutral-600">0</p>
-                <p className="text-sm text-neutral-600">Avis/réseaux à traiter</p>
-              </div>
+              <StatLink to="/familles-accueil" value={0} label="Demandes FA à traiter" colorClass="bg-neutral-50" valueClass="text-neutral-600" />
+              <StatLink to="/animaux?statut=a_adopter" value={0} label="Avis/réseaux à traiter" colorClass="bg-neutral-50" valueClass="text-neutral-600" />
             </div>
           </div>
         )}
@@ -417,18 +414,9 @@ export function DashboardPage() {
         {!collapsedBlocks.finances && (
           <div className="p-5">
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-              <div className="rounded-lg bg-warning-50 p-4 text-center">
-                <p className="text-2xl font-bold text-warning-600">0</p>
-                <p className="text-sm text-neutral-600">Factures vétérinaires</p>
-              </div>
-              <div className="rounded-lg bg-neutral-50 p-4 text-center">
-                <p className="text-2xl font-bold text-neutral-600">{formatCurrency(stats.coutTotal)}</p>
-                <p className="text-sm text-neutral-600">Dépenses totales</p>
-              </div>
-              <div className="rounded-lg bg-success-50 p-4 text-center">
-                <p className="text-2xl font-bold text-success-600">0</p>
-                <p className="text-sm text-neutral-600">Dons du mois</p>
-              </div>
+              <StatLink to="/veterinaires" value={0} label="Factures vétérinaires" colorClass="bg-warning-50" valueClass="text-warning-600" />
+              <StatLink to="/animaux" value={formatCurrency(stats.coutTotal)} label="Dépenses totales" colorClass="bg-neutral-50" valueClass="text-neutral-600" small />
+              <StatLink to="/animaux" value={0} label="Dons du mois" colorClass="bg-success-50" valueClass="text-success-600" />
             </div>
           </div>
         )}

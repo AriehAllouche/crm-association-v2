@@ -96,7 +96,7 @@ export async function generateICADAlerts(): Promise<void> {
               titre: `ICAD manquant - ${animal.nom}`,
               message: `L'animal a ${ageMonths} mois, ICAD obligatoire`,
               date_echeance: today.toISOString().split('T')[0],
-              priorite: 'haute',
+              priorite: 'urgent',
               statut: 'active',
             });
           }
@@ -118,7 +118,7 @@ export async function generateJusticeAlerts(): Promise<void> {
       .from('justice_cases')
       .select('id, numero_parquet, date_audience, animal_id, animal:animals(nom)')
       .not('date_audience', 'is', null)
-      .in('statut', ['en_cours', 'en_attente']);
+      .in('statut', ['en_cours', 'ouvert', 'audience_planifiee']);
 
     if (error) throw error;
 
@@ -132,7 +132,7 @@ export async function generateJusticeAlerts(): Promise<void> {
       // Si l'audience est dans moins de 7 jours
       if (audienceDate <= alertDate && audienceDate >= today) {
         const daysUntil = Math.ceil((audienceDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-        const priorite = daysUntil <= 1 ? 'critique' : daysUntil <= 3 ? 'haute' : 'moyenne';
+        const priorite = daysUntil <= 1 ? 'critique' : daysUntil <= 3 ? 'urgent' : 'normal';
 
         // Vérifier si une alerte existe déjà
         const { data: existing } = await supabase
@@ -167,46 +167,43 @@ export async function generateJusticeAlerts(): Promise<void> {
  */
 export async function generateVermifugeAlerts(): Promise<void> {
   try {
-    // Récupérer tous les animaux avec des informations de vermifuge
-    const { data: animaux, error } = await supabase
-      .from('animals')
-      .select('id, nom, date_dernier_vermifuge, statut')
-      .not('date_dernier_vermifuge', 'is', null)
-      .in('statut', ['a_adopter', 'en_famille_accueil', 'en_pension', 'en_soins']);
+    // Récupérer les vermifuges avec un prochain traitement à venir
+    const { data: soins, error } = await supabase
+      .from('sante_soins')
+      .select('id, animal_id, animal:animals(nom), date_soin, prochain_traitement')
+      .eq('type', 'vermifuge')
+      .not('prochain_traitement', 'is', null);
 
     if (error) throw error;
 
     const today = new Date();
     const alertDate = new Date(today);
-    alertDate.setDate(alertDate.getDate() + 30); // Alertes 30 jours avant expiration
+    alertDate.setDate(alertDate.getDate() + 30);
 
-    for (const animal of animaux as any[]) {
-      const lastVermifuge = new Date(animal.date_dernier_vermifuge);
-      const expirationDate = new Date(lastVermifuge);
-      expirationDate.setMonth(expirationDate.getMonth() + 3); // Vermifuges valables 3 mois
+    for (const soin of soins as any[]) {
+      const expirationDate = new Date(soin.prochain_traitement);
+      const animalName = soin.animal?.nom || 'Animal';
 
-      // Si le vermifuge expire dans moins de 30 jours ou est déjà expiré
       if (expirationDate <= alertDate) {
         const daysUntil = Math.ceil((expirationDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
         const priorite = daysUntil < 0 ? 'critique' : daysUntil < 7 ? 'urgent' : 'normal';
 
-        // Vérifier si une alerte existe déjà
         const { data: existing } = await supabase
           .from('alerts')
           .select('id')
-          .eq('animal_id', animal.id)
+          .eq('animal_id', soin.animal_id)
           .eq('type', 'vermifuge')
           .eq('statut', 'active')
           .maybeSingle();
 
         if (!existing) {
           await supabase.from('alerts').insert({
-            animal_id: animal.id,
+            animal_id: soin.animal_id,
             type: 'vermifuge',
-            titre: `Vermifuge expiré - ${animal.nom}`,
-            message: daysUntil < 0 
-              ? `Vermifuge expiré depuis ${Math.abs(daysUntil)} jours`
-              : `Vermifuge expire dans ${daysUntil} jours`,
+            titre: `Vermifuge à renouveler - ${animalName}`,
+            message: daysUntil < 0
+              ? `Vermifuge en retard de ${Math.abs(daysUntil)} jours`
+              : `Vermifuge à renouveler dans ${daysUntil} jours`,
             date_echeance: expirationDate.toISOString().split('T')[0],
             priorite,
             statut: 'active',

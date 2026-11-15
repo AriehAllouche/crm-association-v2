@@ -174,7 +174,6 @@ export const signalementUrgenceColors: Record<SignalementUrgence, string> = {
 export const adoptionStatutLabels: Record<AdoptionStatut, string> = {
   candidature: 'Candidature',
   pre_visite: 'Pré-visite',
-  visio: 'Visioconférence',
   validee: 'Validée',
   contrat_signe: 'Contrat signé',
   paiement_recu: 'Paiement reçu',
@@ -248,10 +247,15 @@ export const especeLabels: Record<string, string> = {
 };
 
 export const roleLabels: Record<string, string> = {
+  presidente: 'Présidente',
   admin: 'Administrateur',
-  benevole: 'Bénévole',
   enqueteur: 'Enquêteur',
   referent_fa: 'Référent FA',
+  veterinaire: 'Vétérinaire',
+  educateur: 'Éducateur',
+  communication: 'Communication',
+  tresorier: 'Trésorier',
+  benevole: 'Bénévole',
 };
 
 export function formatDate(dateStr?: string): string {
