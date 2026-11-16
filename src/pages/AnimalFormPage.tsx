@@ -38,6 +38,9 @@ export function AnimalFormPage() {
     service_demandeur: '',
     service_demandeur_contact: '',
     circonstances_pec: '',
+    ancien_detenteur_nom: '',
+    ancien_detenteur_prenom: '',
+    ancien_detenteur_contact: '',
     statut: 'signale' as AnimalStatut,
     status_pec: '',
     animal_state: '',
@@ -131,6 +134,9 @@ export function AnimalFormPage() {
         service_demandeur: a.service_demandeur || '',
         service_demandeur_contact: a.service_demandeur_contact || '',
         circonstances_pec: a.circonstances_pec || '',
+        ancien_detenteur_nom: a.ancien_detenteur_nom || '',
+        ancien_detenteur_prenom: a.ancien_detenteur_prenom || '',
+        ancien_detenteur_contact: a.ancien_detenteur_contact || '',
         statut: a.statut || 'signale',
         status_pec: a.status_pec || '',
         animal_state: a.animal_state || '',
@@ -484,6 +490,42 @@ export function AnimalFormPage() {
                 className="input"
                 placeholder="Ex : animal récupéré à la demande de la gendarmerie après la garde à vue de son détenteur..."
               />
+            </div>
+          </div>
+
+          <div className="mt-4 border-t border-neutral-200 pt-4">
+            <h3 className="mb-3 text-sm font-semibold text-neutral-900">Ancien détenteur</h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div>
+                <label className="label">Nom</label>
+                <input
+                  type="text"
+                  value={form.ancien_detenteur_nom}
+                  onChange={(e) => setForm({ ...form, ancien_detenteur_nom: e.target.value })}
+                  className="input"
+                  placeholder="Dupont"
+                />
+              </div>
+              <div>
+                <label className="label">Prénom</label>
+                <input
+                  type="text"
+                  value={form.ancien_detenteur_prenom}
+                  onChange={(e) => setForm({ ...form, ancien_detenteur_prenom: e.target.value })}
+                  className="input"
+                  placeholder="Jean"
+                />
+              </div>
+              <div>
+                <label className="label">Téléphone / contact</label>
+                <input
+                  type="text"
+                  value={form.ancien_detenteur_contact}
+                  onChange={(e) => setForm({ ...form, ancien_detenteur_contact: e.target.value })}
+                  className="input"
+                  placeholder="06 12 34 56 78"
+                />
+              </div>
             </div>
           </div>
         </div>

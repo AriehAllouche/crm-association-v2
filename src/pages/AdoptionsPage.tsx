@@ -32,7 +32,7 @@ const statutColors: Record<AdoptionStatut, string> = {
 
 const PIPELINE_STEPS: { statut: AdoptionStatut; label: string; dateField: string }[] = [
   { statut: 'candidature', label: 'Candidature reçue', dateField: 'date_candidature' },
-  { statut: 'pre_visite', label: 'Prévisite (visio)', dateField: 'date_pre_visite' },
+  { statut: 'pre_visite', label: 'Prévisite effectuée', dateField: 'date_pre_visite' },
   { statut: 'validee', label: 'Candidature validée', dateField: 'date_validation' },
   { statut: 'contrat_signe', label: 'Contrat signé', dateField: 'date_contrat' },
   { statut: 'paiement_recu', label: 'Paiement reçu', dateField: 'paiement_recu' },
@@ -538,6 +538,29 @@ export function AdoptionsPage() {
                     {detailAdoption.caution_restituee ? 'Restituée' : 'À restituer'}
                   </button>
                 </div>
+              </div>
+            </div>
+
+            {/* Documents */}
+            <div className="card p-4">
+              <h4 className="mb-3 text-sm font-semibold text-neutral-900">Documents</h4>
+              <div className="space-y-2">
+                {([
+                  { label: 'Contrat signé', url: detailAdoption.contrat_url },
+                  { label: 'Compte rendu prévisite', url: detailAdoption.compte_rendu_previsite_url },
+                  { label: 'Compte rendu post-visite', url: detailAdoption.compte_rendu_postvisite_url },
+                ] as { label: string; url?: string }[]).map((doc) => (
+                  <div key={doc.label} className="flex items-center justify-between rounded-lg bg-neutral-50 px-3 py-2">
+                    <span className="text-sm text-neutral-700">{doc.label}</span>
+                    {doc.url ? (
+                      <a href={doc.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700">
+                        <FileText size={14} /> Voir
+                      </a>
+                    ) : (
+                      <span className="text-xs text-neutral-400">Non fourni</span>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
 

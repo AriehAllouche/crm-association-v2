@@ -121,6 +121,9 @@ export interface Animal {
   reserve?: boolean;
   vole?: boolean;
   notes_excel?: string;
+  ancien_detenteur_nom?: string;
+  ancien_detenteur_prenom?: string;
+  ancien_detenteur_contact?: string;
 }
 
 export type SignalementStatut = 'nouveau' | 'en_cours' | 'traite' | 'cloture';
@@ -277,6 +280,12 @@ export interface Adoption {
   date_caution_versement?: string;
   date_caution_restitution?: string;
   icad_animal?: string;
+  date_paiement?: string;
+  date_adoption?: string;
+  date_refus?: string;
+  contrat_url?: string;
+  compte_rendu_previsite_url?: string;
+  compte_rendu_postvisite_url?: string;
   notes?: string;
   created_at: string;
   updated_at: string;

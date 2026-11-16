@@ -53,6 +53,9 @@ const emptyForm = {
   // Disponibilité
   disponibilite: '' as string,
   date_disponibilite: '',
+  // Extérieur
+  a_jardin: false,
+  a_jardin_cloture: false,
 };
 
 export function FamillesAccueilPage() {
@@ -756,6 +759,18 @@ export function FamillesAccueilPage() {
                 <label htmlFor="autres_animaux" className="text-sm text-neutral-700">
                   Présence d'autres animaux
                 </label>
+              </div>
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 text-sm text-neutral-700">
+                  <input type="checkbox" checked={form.a_jardin} onChange={(e) => setForm({ ...form, a_jardin: e.target.checked, a_jardin_cloture: e.target.checked ? form.a_jardin_cloture : false })} className="rounded border-neutral-300" />
+                  Extérieur / jardin
+                </label>
+                {form.a_jardin && (
+                  <label className="flex items-center gap-2 text-sm text-neutral-700">
+                    <input type="checkbox" checked={form.a_jardin_cloture} onChange={(e) => setForm({ ...form, a_jardin_cloture: e.target.checked })} className="rounded border-neutral-300" />
+                    Jardin clôturé
+                  </label>
+                )}
               </div>
             </div>
           </div>

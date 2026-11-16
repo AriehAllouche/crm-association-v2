@@ -534,6 +534,25 @@ export function AnimalDetailPage() {
           </div>
         )}
 
+        {/* ANCIEN DETENTEUR */}
+        {activeTab === 'situation' && (animal.ancien_detenteur_nom || animal.ancien_detenteur_contact) && (
+          <div className="card mt-4 p-6">
+            <h2 className="mb-4 font-heading text-lg font-semibold text-neutral-900">Ancien détenteur</h2>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Nom</p>
+                <p className="mt-1 text-neutral-900">
+                  {animal.ancien_detenteur_prenom} {animal.ancien_detenteur_nom}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Téléphone / contact</p>
+                <p className="mt-1 text-neutral-900">{animal.ancien_detenteur_contact || '—'}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* RESPONSABLES */}
         {activeTab === 'responsables' && (
           <div className="card p-6">
